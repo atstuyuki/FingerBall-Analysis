@@ -1,28 +1,29 @@
 # FingerBall Analysis v2
 
-投球動画の握球〜ボールリリースまでの手指運動解析プロジェクト。Stage 1 は Google Drive 上の WiLoR-mini INT8 (OpenVINO) と手検出器の読み込み、および1フレーム推論の動作検証です。
+単眼投球動画から手指の動きを解析するプロジェクトです。**Stage 1は全フレームの手検出とWiLoR INT8の生テンソル保存**まで対応しています。
 
-[![Open Stage 1 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)
 
-**このボタンは `atstuyuki/FingerBall-Analysis` という名前のリポジトリを `main` ブランチで作成し、本ファイルを配置した後に動作します。** 別の名前にする場合はURLを修正してください。プライベートリポジトリでは GitHub の認証が必要な場合があります。
+**[Google ColabでStage 1を開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)**
 
-## 操作
+## 使い方
 
-1. [Colabを開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb) をクリック（GitHub登録後）。
-2. ColabでCPUランタイムを選択し、上からセルを実行。
-3. 自分のGoogleアカウントでDriveをマウント。`PROJECT_DIR` にモデルがあるDriveのパスを指定する（Notebook側で名称検索も可能）。
-4. 動画1本を指定・アップロードし、1フレームで手検出とWiLoRの生出力を確認。
+1. 上のボタンからNotebookを開き、ColabのCPUランタイムを選択
+2. Google Driveをマウント（共有フォルダ名：母指回内トラッキング）
+3. Drive内の既存WiLoR・検出器モデルをローカルにコピーし、OpenVINOでコンパイル
+4. 投球動画を選択
+5. **全フレームの解析セル**を実行（STRIDE=1）
+6. Google Drive内の `FingerBall_v2_stage1_results/full_video/` にCSV・NPZ・BOX動画・レポートを保存
 
-## 重要
+## Stage 1の出力
 
-- **研究データ、動画、参加者情報、学習済み重み、MANOライセンスファイルはGitHubにコミットしない。** Google Drive（アクセス制限付き）に保管してください。
-- この段階のOpenVINOモデルはColabのCPUで動かします。NVIDIA CUDAを利用するPyTorch版WiLoRは次段階で別途構築します。
-- 既存の母指回内角研究ではモデルやMANOの再配布制限があるため、公開リポジトリへの追加は避けます。
-- Stage 1はモデルのロード・推論検証が目的で、21点関節座標の復元やボール接触・リリース検出は未実装です。
-- 元コードの動作をColabで再現できたことを保証するものではありません。
+- `frame_detection_results.csv`：解析したフレーム、手検出成否、BOX座標、WiLoR成否
+- `wilor_predictions.npz`：WiLoR生テンソル（検出成功フレームのみ）
+- `hand_detection_full_video.mp4`：BOX重畳動画（未検出フレームも含む）
+- `stage1_full_video_report.json`：解析件数と設定
 
-## Files
+**制限**：OpenVINO CPU動作検証用です。21点関節座標、3D角度、ボール検出、リリースは未実装。推論の画像前処理は元のWiLoRアプリとの完全一致を検証していません。
 
-- `notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb`: Stage 1 Colab Notebook
-- `.gitignore`: 大容量・機微データをGit管理対象から除外
-- `LICENSE_NOTICE.md`: 第三者モデルの扱いに関する注意
+## データの取り扱い
+
+GitHubにはNotebook・ソースコードだけを保存します。モデルの重み、MANOファイル、投球動画、被験者情報、解析出力を公開リポジトリへアップロードしないでください。共有データを使用する場合は研究倫理と各モデルのライセンスを確認してください。
