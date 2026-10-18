@@ -6,6 +6,14 @@
 
 **[Google ColabでStage 1を開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)**
 
+## Stage 2A：Pose誘導による投球手追跡
+
+[![Open Stage 2A in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2A_Pose_Flow_WiLoR.ipynb)
+
+**[Stage 2AのNotebookを開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2A_Pose_Flow_WiLoR.ipynb)**
+
+MediaPipe Poseの肩・肘・手首、YOLO/OpenVINO、Lucas–Kanade光学フローを組み合わせ、正しい投球手のROI候補を時系列で追跡します。WiLoR INT8の生出力とQC動画をDriveへ保存します。Pose由来の暫定ROIは正しい手の検出と同義ではありません。
+
 ## 使い方
 
 1. 上のボタンからNotebookを開き、ColabのCPUランタイムを選択
