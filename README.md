@@ -6,6 +6,16 @@
 
 **[Google ColabでStage 1を開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)**
 
+## Stage 2B：手動アンカー＋前後双方向追跡＋21点QC
+
+[![Open Stage 2B in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2B_Anchored_Tracking_21Landmarks.ipynb)
+
+**[Stage 2B NotebookをColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2B_Anchored_Tracking_21Landmarks.ipynb)**
+
+任意のフレームで投球手のBOXを手動指定し、前後双方向に追跡。WiLoRの21点を暫定カメラ式で2Dに投影し、全フレーム重畳MP4・175〜210フレーム拡大MP4・追跡QCのCSV・NPZをGoogle Driveへ保存します。
+
+**検証上の注意**：WiLoR公式パッチ前処理・カメラ投影に一致することは未確認です。21点は精度未検証の診断用表示であり、関節角度計測やリリース評価には使わないでください。
+
 ## Stage 2A：Pose誘導による投球手追跡
 
 [![Open Stage 2A in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2A_Pose_Flow_WiLoR.ipynb)
