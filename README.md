@@ -6,6 +6,14 @@
 
 **[Google ColabでStage 1を開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)**
 
+## Stage 2D：動画提供者向けのリリース付近プレビュー
+
+[![Open Stage 2D in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2D_Release_Showcase.ipynb)
+
+**[Stage 2DをColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2D_Release_Showcase.ipynb)**
+
+指定フレーム区間を手動ROIで追跡し、Hand Landmarkerの21点2D骨格・GrabCut暫定マスク・元動画座標CSV・QC動画・動画提供者向けZIPをGoogle Driveに保存します。検出失敗フレームでは切り出し倍率を変えて再試行します。**手マスク・手の同一性・関節座標精度は未検証**であり、送付前に目視レビューと個人情報・共有許諾の確認が必要です。
+
 ## Stage 2C：手動ROIで手マスク＋21点骨格・CSV出力
 
 [![Open Stage 2C in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2C_ManualROI_HandMask_Landmarks.ipynb)
