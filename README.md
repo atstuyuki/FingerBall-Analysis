@@ -6,6 +6,20 @@
 
 **[Google ColabでStage 1を開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)**
 
+## Stage 2C：手動ROIで手マスク＋21点骨格・CSV出力
+
+[![Open Stage 2C in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2C_ManualROI_HandMask_Landmarks.ipynb)
+
+**[Stage 2C：Colab Notebookを開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2C_ManualROI_HandMask_Landmarks.ipynb)**
+
+- リリース前後の解析フレーム範囲を手動指定（例：175〜210）
+- 3つのキーフレームでROIをスライダー確定し、中間ROIを線形補間
+- MediaPipe Hand Landmarkerの**21点2D座標**を元動画のピクセル座標でCSV化
+- ROIとランドマークを手掛かりとする**暫定GrabCut手マスク**をPNG保存
+- 手マスク＋骨格の重畳MP4、拡大MP4、QC CSV/JSONをDriveへ保存
+
+**重要**：この段階の手マスクは学習済みhand segmentationではなく、正確な輪郭を保証しません。21点はMediaPipeの2D点であり、WiLoRの公式カメラ投影ではありません。結果動画を目視してから研究利用してください。
+
 ## Stage 2B：手動アンカー＋前後双方向追跡＋21点QC
 
 [![Open Stage 2B in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2B_Anchored_Tracking_21Landmarks.ipynb)
