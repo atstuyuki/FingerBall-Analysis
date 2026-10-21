@@ -6,6 +6,14 @@
 
 **[Google ColabでStage 1を開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)**
 
+## Stage 2E：指先3点ハイライト動画（通常・スロー・左右比較）
+
+[![Open Stage 2E in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2E_KeyTips_Showcase.ipynb)
+
+**[Stage 2EをGoogle Colabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2E_KeyTips_Showcase.ipynb)**
+
+195〜200フレームの母指・示指・中指先端を色分けし、通常速度・1/6速度・左右比較動画を生成。手動ROIは **x0, y0スライダー＋200×200 px固定正方形**。175/190/210フレームの初期位置は前回Stage 2D解析結果から入力済みです。座標CSVと研究プレビュー用ZIPをDriveに保存します。指先座標とGrabCutマスクは未検証の推定結果であり、離手時刻の自動検出ではありません。
+
 ## Stage 2D：動画提供者向けのリリース付近プレビュー
 
 [![Open Stage 2D in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2D_Release_Showcase.ipynb)
