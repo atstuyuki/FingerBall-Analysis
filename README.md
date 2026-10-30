@@ -6,6 +6,14 @@
 
 **[Google ColabでStage 1を開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)**
 
+## Stage 2G：Release-focused viewer（188–193フレーム）
+
+[![Open Stage 2G in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2G_Release_Focused_Viewer.ipynb)
+
+**[Stage 2GをColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2G_Release_Focused_Viewer.ipynb)**
+
+Stage 2D/2E の `hand_21_landmarks_long.csv` と Stage 2D の `release_zoom_175_210.mp4` を使い、188〜193フレームの **2D参照動画・画像原点疑似3D・手ローカル疑似3D・示指/中指/母指の2D投影角度グラフ**を時間スライダーで同期。投球手の左右は手動指定。静的HTML・比較MP4・代表PNG・品質CSV・ZIPをDriveに保存します。**世界座標系や実測3Dではなく、2D投影角は真の指関節屈伸角ではありません。**
+
 ## Stage 2F：3D Hand Skeleton Viewer（時間スライダー・360°回転）
 
 [![Open Stage 2F in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2F_3D_Hand_Skeleton_Viewer.ipynb)
