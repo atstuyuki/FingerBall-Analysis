@@ -12,7 +12,7 @@
 
 **[Stage 2HをColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2H_Manual_Guided_Annotation.ipynb)**
 
-Stage 2Dで得た元動画座標の21点CSVを読み込み、**元動画上で関節点をドラッグ修正**するColab GUI。遮蔽・不明点のフラグ、セッションのDrive保存と再開、任意のキーフレーム間2D補間、元推定との比較PNG・監査CSV・ZIPを生成します。**Zは修正しておらず、2Dの修正を真の3D補正と混同しない**でください。`VIDEO_PATH`には元動画を指定してください（拡大済み動画は不可）。
+Stage 2Dで得た元動画座標の21点CSVを読み込み、**元動画上で関節点をドラッグ修正**するColab GUI。 **隣接フレームへの補正候補の自動引継ぎ**に対応し、遮蔽点は隣接フレームの候補を消しません（紫色で要確認）。遮蔽・不明点のフラグ、セッションのDrive保存と再開、任意のキーフレーム間2D補間、元推定との比較PNG・監査CSV・ZIPを生成します。**Zは修正しておらず、2Dの修正を真の3D補正と混同しない**でください。`VIDEO_PATH`には元動画を指定してください（拡大済み動画は不可）。
 
 ## Stage 2G：Release-focused viewer（188–193フレーム）
 
