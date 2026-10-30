@@ -6,6 +6,14 @@
 
 **[Google ColabでStage 1を開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)**
 
+## Stage 2H：Manual-guided Hand Landmark Annotation（188〜193を含むリリース周辺）
+
+[![Open Stage 2H in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2H_Manual_Guided_Annotation.ipynb)
+
+**[Stage 2HをColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2H_Manual_Guided_Annotation.ipynb)**
+
+Stage 2Dで得た元動画座標の21点CSVを読み込み、**元動画上で関節点をドラッグ修正**するColab GUI。遮蔽・不明点のフラグ、セッションのDrive保存と再開、任意のキーフレーム間2D補間、元推定との比較PNG・監査CSV・ZIPを生成します。**Zは修正しておらず、2Dの修正を真の3D補正と混同しない**でください。`VIDEO_PATH`には元動画を指定してください（拡大済み動画は不可）。
+
 ## Stage 2G：Release-focused viewer（188–193フレーム）
 
 [![Open Stage 2G in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2G_Release_Focused_Viewer.ipynb)
