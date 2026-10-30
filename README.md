@@ -12,7 +12,7 @@
 
 **[Stage 2FをColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2F_3D_Hand_Skeleton_Viewer.ipynb)**
 
-Stage 2D/2Eの`hand_21_landmarks_long.csv`を入力。Plotlyで21点の手指骨格のみを表示し、時間スライダー・マウス回転を操作できます。保存したHTMLではYaw/Pitch回転バーを使えます。代表フレームの横360°・縦360°回転MP4、PNG、共有用ZIPをGoogle Driveに出力します。**MediaPipeの相対Zによる疑似3D表示であり、実寸3Dや実測した背面画像ではありません。**
+Stage 2D/2Eの`hand_21_landmarks_long.csv`を入力。**画像左上を原点とするXY固定座標（手首の画面内移動と軌跡を表示）＋手首相対Z**で21点の手指骨格を表示し、時間スライダー・マウス回転を操作できます。保存したHTMLではYaw/Pitch回転バーを使えます。代表フレームの横360°・縦360°回転MP4、PNG、共有用ZIPをGoogle Driveに出力します。**MediaPipeの相対Zによる疑似3D表示であり、実寸3Dや実測した背面画像ではありません。**
 
 ## Stage 2E：指先3点ハイライト動画（通常・スロー・左右比較）
 
