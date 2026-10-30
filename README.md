@@ -6,6 +6,14 @@
 
 **[Google ColabでStage 1を開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage1_Drive_WiLoR_OpenVINO.ipynb)**
 
+## Stage 2F：3D Hand Skeleton Viewer（時間スライダー・360°回転）
+
+[![Open Stage 2F in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2F_3D_Hand_Skeleton_Viewer.ipynb)
+
+**[Stage 2FをColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2F_3D_Hand_Skeleton_Viewer.ipynb)**
+
+Stage 2D/2Eの`hand_21_landmarks_long.csv`を入力。Plotlyで21点の手指骨格のみを表示し、時間スライダー・マウス回転を操作できます。保存したHTMLではYaw/Pitch回転バーを使えます。代表フレームの横360°・縦360°回転MP4、PNG、共有用ZIPをGoogle Driveに出力します。**MediaPipeの相対Zによる疑似3D表示であり、実寸3Dや実測した背面画像ではありません。**
+
 ## Stage 2E：指先3点ハイライト動画（通常・スロー・左右比較）
 
 [![Open Stage 2E in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_v2_Stage2E_KeyTips_Showcase.ipynb)
