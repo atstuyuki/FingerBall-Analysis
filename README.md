@@ -1,3 +1,12 @@
+## Stage 2I-2：MANO 3D Hand Mesh Fitting
+
+[![Open Stage 2I-2 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2I2_MANO_3D_Mesh_Fitting.ipynb)
+
+**[Stage 2I-2をColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2I2_MANO_3D_Mesh_Fitting.ipynb)**
+
+手動確定済みのStage 2H座標を保持したまま、**左手MANOメッシュ**を2D再投影・姿勢・形状・時間方向の損失でフィット。2D重畳QC、再投影誤差、モデル依存の3D21点と関節内角、188〜193フレームの3DメッシュHTMLをGoogle Driveへ出力します。MANOライセンスに同意して公式サイトで取得した`MANO_LEFT.pkl`を`MyDrive/母指回内トラッキング/mano_models/`へ事前に配置してください。モデルファイルはGitHubで配布しません。**単眼の結果は実測3Dではありません。**
+
+
 # FingerBall Analysis v2
 
 単眼投球動画から手指の動きを解析するプロジェクトです。**Stage 1は全フレームの手検出とWiLoR INT8の生テンソル保存**まで対応しています。
