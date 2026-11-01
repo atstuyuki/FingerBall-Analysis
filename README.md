@@ -1,3 +1,11 @@
+## Stage 2H Spin-off — 360° Stick Viewer（提供者向け）
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2H_Spinoff_360_Stick_Viewer.ipynb)
+
+**[Stage 2H 360°スティックビューアをColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2H_Spinoff_360_Stick_Viewer.ipynb)**
+
+Stage 2Hの**目視確認済みXYを保持**して、185〜198フレームをマウスで360°回せるPlotlyの単独HTMLを作ります。関節上の名前は非表示・5指の凡例のみ表示。Play/Pause・フレームスライダー付き。**深度はStage 2Dの未補正MediaPipe相対Zによる参考表示（Zがなければ平面）で、実測3Dではありません。** HTMLのみデータ提供者へ渡せます。
+
 ## Stage 2I-2：MANO 3D Hand Mesh Fitting
 
 [![Open Stage 2I-2 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2I2_MANO_3D_Mesh_Fitting.ipynb)
