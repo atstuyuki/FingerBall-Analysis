@@ -1,3 +1,11 @@
+## Stage 2J-1 — Multi-model 2D/3D Comparison
+
+[![Open Stage 2J-1 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2J1_MultiModel_2D3D_Comparison.ipynb)
+
+**[Stage 2J-1をColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2J1_MultiModel_2D3D_Comparison.ipynb)**
+
+Stage 2Hの確定済み21点を改変せず、**MediaPipe Tasks（全画面／手動ROI補助）とWiLoR-mini（YOLO独立検出／手動bbox補助）**を185〜198フレームで比較します。21点の元画像XY・モデル別3D推定・失敗／遮蔽／手動補正の来歴・RMSE・190前後の比較図を出力。手動ROI補助条件は独立検出の精度評価とは区別します。WiLoR-miniはMANOモデルデータを自動ダウンロードする実装なので、**MANO利用許諾確認後にのみ設定を有効化**してください（初期状態は無効）。
+
 ## Stage 2H Spin-off — 360° Stick Viewer（提供者向け）
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2H_Spinoff_360_Stick_Viewer.ipynb)
