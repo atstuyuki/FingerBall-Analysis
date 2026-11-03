@@ -1,3 +1,11 @@
+## Stage 2J-1B — 示指・中指詳細QC＋360° 3D比較ビューア
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2J1B_Detailed_QC_3D_Viewer.ipynb)
+
+**[Stage 2J-1B をColabで開く](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2J1B_Detailed_QC_3D_Viewer.ipynb)**
+
+Stage 2J-1の共通CSVから、示指・中指のMCP/PIP/DIP/TIPの2D関節別誤差・フレーム別RMSE・188–193Fの拡大比較図・MediaPipe/WiLoR別の**手首原点・手掌スケール正規化3D骨格**を、フレームスライダーとPlay/Pause付き360°HTMLで出力します。モデルは再実行せず、手動確定2Dは変更しません。3Dはモデル依存推定であり実測ではありません。
+
 ## Stage 2J-1 — Multi-model 2D/3D Comparison
 
 [![Open Stage 2J-1 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2J1_MultiModel_2D3D_Comparison.ipynb)
