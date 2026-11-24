@@ -1,0 +1,43 @@
+name: FingerBallCapture
+options:
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  SWIFT_VERSION: "5.0"
+targets:
+  FingerBallCapture:
+    type: application
+    platform: iOS
+    sources:
+      - FingerBallCapture
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: org.fingerball.capture
+      TARGETED_DEVICE_FAMILY: "1,2"
+    info:
+      path: FingerBallCapture/Info.plist
+      properties:
+        NSCameraUsageDescription: 投球研究用の動画を撮影します。
+        NSLocalNetworkUsageDescription: 近くの撮影端末と録画開始・停止を連動します。
+        NSBonjourServices: ["_fingerball-v1._tcp", "_fingerball-v1._udp"]
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+  FingerBallCaptureTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - FingerBallCaptureTests
+    dependencies:
+      - target: FingerBallCapture
+    settings:
+      GENERATE_INFOPLIST_FILE: YES
+schemes:
+  FingerBallCapture:
+    build:
+      targets:
+        FingerBallCapture: all
+    test:
+      targets:
+        - FingerBallCaptureTests

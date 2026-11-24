@@ -2,6 +2,7 @@
 
 - [Codexへの開発引継ぎ書](docs/FingerBall_Capture_V1_Codex_Handoff.md)
 - [Codex作業ルール](AGENTS.md)
+- [iOSアプリのXcodeプロジェクト・実機検証手順](FingerBallCapture-iOS/README.md)
 
 **2026-11-24現在：iOSアプリ自体は未実装。** 既存のColab手指解析資産を維持し、今後 `FingerBallCapture-iOS/` にSwiftUI/AVFoundation実装を追加予定です。2台の無線連動撮影、LED同期なし、撮影後のBR/SFCイベント同期、最終的な1カメラ＋1IMU構成の研究方針です。
 
