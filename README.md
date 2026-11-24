@@ -1,3 +1,10 @@
+## FingerBall Capture V1 — iPhone/iPad 240fps撮影アプリ（Codex開発用仕様）
+
+- [Codexへの開発引継ぎ書](docs/FingerBall_Capture_V1_Codex_Handoff.md)
+- [Codex作業ルール](AGENTS.md)
+
+**2026-11-24現在：iOSアプリ自体は未実装。** 既存のColab手指解析資産を維持し、今後 `FingerBallCapture-iOS/` にSwiftUI/AVFoundation実装を追加予定です。2台の無線連動撮影、LED同期なし、撮影後のBR/SFCイベント同期、最終的な1カメラ＋1IMU構成の研究方針です。
+
 ## Stage 2J-1B — 示指・中指詳細QC＋360° 3D比較ビューア
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/atstuyuki/FingerBall-Analysis/blob/main/notebooks/FingerBall_Stage2J1B_Detailed_QC_3D_Viewer.ipynb)
