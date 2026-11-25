@@ -13,15 +13,30 @@ final class CaptureModel: ObservableObject {
     private let peer = PeerLink()
 
     @Published var modes: [CameraMode] = []
-    @Published var mode: CameraMode?
+    @Published var mode: CameraMode? {
+        didSet {
+            if let mode, let data = try? JSONEncoder().encode(mode) {
+                UserDefaults.standard.set(data, forKey: "capture.mode")
+            }
+        }
+    }
     @Published var role: DeviceRole = .solo
-    @Published var view: Viewpoint = .rear
+    @Published var view: Viewpoint = .rear {
+        didSet { UserDefaults.standard.set(view.rawValue, forKey: "capture.viewpoint") }
+    }
     @Published var subject = ""
-    @Published var throwingHand = "R"
+    @Published private var subjectNames: [String: String] = [:]
+    @Published var throwingHand = "R" {
+        didSet { UserDefaults.standard.set(throwingHand, forKey: "capture.throwingHand") }
+    }
     @Published var throwNumber = 1
     @Published var sessionID = UUID()
-    @Published var lockExposure = false
-    @Published var lockFocus = false
+    @Published var lockExposure = false {
+        didSet { UserDefaults.standard.set(lockExposure, forKey: "capture.lockExposure") }
+    }
+    @Published var lockFocus = false {
+        didSet { UserDefaults.standard.set(lockFocus, forKey: "capture.lockFocus") }
+    }
     @Published var state: CaptureState = .idle
     @Published var connected = false
     @Published var remoteStatus = ""
@@ -46,6 +61,16 @@ final class CaptureModel: ObservableObject {
     private var cameraRequest = 0
 
     init() {
+        let defaults = UserDefaults.standard
+        subject = defaults.string(forKey: "capture.subjectID") ?? ""
+        subjectNames = defaults.dictionary(forKey: "capture.subjectNames") as? [String: String] ?? [:]
+        view = defaults.string(forKey: "capture.viewpoint").flatMap(Viewpoint.init(rawValue:)) ?? .rear
+        throwingHand = defaults.string(forKey: "capture.throwingHand") ?? "R"
+        lockExposure = defaults.bool(forKey: "capture.lockExposure")
+        lockFocus = defaults.bool(forKey: "capture.lockFocus")
+        if let data = defaults.data(forKey: "capture.mode") {
+            mode = try? JSONDecoder().decode(CameraMode.self, from: data)
+        }
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if let key = arguments.firstIndex(of: "-FingerBallTestSubject"),
@@ -73,8 +98,18 @@ final class CaptureModel: ObservableObject {
 
     var canConfigure: Bool { state.permitsNewTake && waiting == nil }
 
+    var subjectName: String {
+        get { subjectNames[subject] ?? "" }
+        set {
+            if newValue.isEmpty { subjectNames.removeValue(forKey: subject) }
+            else { subjectNames[subject] = newValue }
+        }
+    }
+
+    func displayName(for id: String) -> String? { subjectNames[id] }
+
     var canStart: Bool {
-        canConfigure && cameraReady && mode != nil && role != .recorder && (role == .solo || connected)
+        canConfigure && cameraReady && mode.map(modes.contains) == true && role != .recorder && (role == .solo || connected)
             && draft.isValid
     }
 
@@ -105,7 +140,7 @@ final class CaptureModel: ObservableObject {
             let available = try await camera.prepare(restart: restart)
             guard request == cameraRequest else { return }
             modes = available
-            if mode == nil { mode = CameraMode.automaticChoice(modes) }
+            if mode.map(available.contains) != true { mode = CameraMode.automaticChoice(available) }
             cameraReady = true
             cameraIssue = nil
         } catch {
@@ -130,6 +165,8 @@ final class CaptureModel: ObservableObject {
     func start() {
         guard canStart else { return }
         let take = draft
+        UserDefaults.standard.set(take.subjectID, forKey: "capture.subjectID")
+        UserDefaults.standard.set(subjectNames, forKey: "capture.subjectNames")
         initialize(take)
         if role == .solo {
             begin(take)
@@ -229,6 +266,9 @@ final class CaptureModel: ObservableObject {
                 events = []
                 lastIssue = pendingFailure ?? failure ?? lastIssue
                 if let lastIssue { markSavedPartial(lastIssue) }
+                if lastIssue == nil, role != .recorder, let take = activeTake {
+                    throwNumber = min(take.throwNumber + 1, 99_999)
+                }
                 state = lastIssue == nil ? .saved : .partial
                 issue = lastIssue
                 refresh()

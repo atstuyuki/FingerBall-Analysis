@@ -2,6 +2,35 @@ import XCTest
 
 final class DeviceCaptureTests: XCTestCase {
     @MainActor
+    func testLandscapeCaptureLayout() {
+        let device = XCUIDevice.shared
+        let originalOrientation = device.orientation
+        device.orientation = .landscapeRight
+        defer { device.orientation = originalOrientation }
+        let app = XCUIApplication()
+        let id = "TEST_LAYOUT"
+        app.launchArguments = ["-FingerBallTestSubject", id]
+        app.launch()
+
+        let preview = app.descendants(matching: .any)["capture.preview"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(preview.frame.height, app.frame.height * 0.5)
+        XCTAssertGreaterThan(preview.frame.width, app.frame.width * 0.8)
+        let subject = app.textFields["capture.subjectID"]
+        XCTAssertEqual(subject.value as? String, id)
+        XCTAssertLessThan(subject.frame.maxY, preview.frame.minY)
+        XCTAssertTrue(app.textFields["capture.subjectName"].isHittable)
+        XCTAssertTrue(app.buttons["capture.start"].isHittable)
+        XCTAssertTrue(app.buttons["capture.settings"].isHittable)
+        XCTAssertTrue(app.buttons["capture.library"].isHittable)
+        app.buttons["capture.settings"].tap()
+        XCTAssertTrue(app.navigationBars["撮影設定"].waitForExistence(timeout: 5))
+        app.buttons["完了"].tap()
+        app.buttons["capture.library"].tap()
+        XCTAssertTrue(app.navigationBars["保存済み動画"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testRecordAndReview1080p240() throws {
         #if targetEnvironment(simulator)
         throw XCTSkip("このテストは実機カメラを使用します。")
@@ -22,10 +51,17 @@ final class DeviceCaptureTests: XCTestCase {
         let recording = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "録画中")).firstMatch
         XCTAssertTrue(recording.waitForExistence(timeout: 10))
         waitForRecordingInterval()
-        app.buttons["capture.stop"].tap()
+        let stop = app.buttons["capture.stop"]
+        XCTAssertTrue(stop.isHittable)
+        XCTAssertEqual(start.exists, false)
+        stop.tap()
 
         let saved = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "保存済み")).firstMatch
         XCTAssertTrue(saved.waitForExistence(timeout: 30))
+        XCTAssertEqual(app.textFields["capture.subjectID"].value as? String, testID)
+        XCTAssertEqual(app.staticTexts["capture.throwNumber"].label, "投球 2")
+        XCTAssertTrue(start.isEnabled)
+        app.buttons["capture.library"].tap()
         let row = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", String(testID))).firstMatch
         for _ in 0..<3 where !row.isHittable { app.swipeUp() }
         XCTAssertTrue(row.isHittable)
@@ -104,6 +140,7 @@ final class DeviceCaptureTests: XCTestCase {
 
     @MainActor
     private func assertRecovery(in app: XCUIApplication, id: String) {
+        app.buttons["capture.library"].tap()
         let take = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", id)).firstMatch
         for _ in 0..<3 where !take.isHittable { app.swipeUp() }
         XCTAssertTrue(take.isHittable)
