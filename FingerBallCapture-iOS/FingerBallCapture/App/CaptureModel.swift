@@ -59,11 +59,12 @@ final class CaptureModel: ObservableObject {
     private var inForeground = false
     private var conversionPause: ConversionPause?
     private var cameraRequest = 0
+    private var usesTestSubject = false
 
     init() {
         let defaults = UserDefaults.standard
-        subject = defaults.string(forKey: "capture.subjectID") ?? ""
-        subjectNames = defaults.dictionary(forKey: "capture.subjectNames") as? [String: String] ?? [:]
+        subject = defaults.string(forKey: "capture.research.lastID") ?? ""
+        subjectNames = defaults.dictionary(forKey: "capture.research.names") as? [String: String] ?? [:]
         view = defaults.string(forKey: "capture.viewpoint").flatMap(Viewpoint.init(rawValue:)) ?? .rear
         throwingHand = defaults.string(forKey: "capture.throwingHand") ?? "R"
         lockExposure = defaults.bool(forKey: "capture.lockExposure")
@@ -76,6 +77,7 @@ final class CaptureModel: ObservableObject {
         if let key = arguments.firstIndex(of: "-FingerBallTestSubject"),
            arguments.indices.contains(key + 1), arguments[key + 1].hasPrefix("TEST_") {
             subject = arguments[key + 1]
+            usesTestSubject = true
         }
         #endif
         camera.onFailure = { [weak self] message in self?.interrupted(message) }
@@ -165,8 +167,10 @@ final class CaptureModel: ObservableObject {
     func start() {
         guard canStart else { return }
         let take = draft
-        UserDefaults.standard.set(take.subjectID, forKey: "capture.subjectID")
-        UserDefaults.standard.set(subjectNames, forKey: "capture.subjectNames")
+        if !usesTestSubject {
+            UserDefaults.standard.set(take.subjectID, forKey: "capture.research.lastID")
+            UserDefaults.standard.set(subjectNames, forKey: "capture.research.names")
+        }
         initialize(take)
         if role == .solo {
             begin(take)
