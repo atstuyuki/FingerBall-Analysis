@@ -18,7 +18,7 @@ targets:
       properties:
         CFBundleDisplayName: FingerBall Capture
         CFBundleShortVersionString: '1.0'
-        CFBundleVersion: '2'
+        CFBundleVersion: '3'
         NSCameraUsageDescription: 投球研究用の動画を撮影します。
         NSLocalNetworkUsageDescription: 近くの撮影端末と録画開始・停止を連動します。
         NSBonjourServices: ["_fingerball-v1._tcp", "_fingerball-v1._udp"]

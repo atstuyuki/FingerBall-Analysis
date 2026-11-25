@@ -4,7 +4,7 @@ import UIKit
 // Capture state is confined to queue. The preview only reads the session reference.
 final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     let session = AVCaptureSession()
-    private let queue = DispatchQueue(label: "org.fingerball.capture.camera")
+    private let queue = DispatchQueue(label: "org.fingerball.capture.camera", qos: .userInitiated)
     private let output = AVCaptureVideoDataOutput()
     private var device: AVCaptureDevice?
     private var formats: [(CameraMode, AVCaptureDevice.Format)] = []
@@ -118,6 +118,16 @@ final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unc
                 try device.lockForConfiguration()
                 defer { device.unlockForConfiguration() }
                 device.activeFormat = format
+                // Use a native bi-planar format supported by the hardware encoder.
+                let formats = self.output.availableVideoPixelFormatTypes
+                let native = CMFormatDescriptionGetMediaSubType(format.formatDescription)
+                if let pixelFormat = [native, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+                                      kCVPixelFormatType_420YpCbCr8BiPlanarFullRange].first(where: {
+                    ($0 == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange ||
+                     $0 == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) && formats.contains($0)
+                }) {
+                    self.output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: pixelFormat]
+                }
                 let duration = CMTime(value: 1, timescale: Int32(mode.fps))
                 device.activeVideoMinFrameDuration = duration
                 device.activeVideoMaxFrameDuration = duration
@@ -148,6 +158,12 @@ final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unc
                                           rotationDegrees: rotation)
             let recording = try Recording(take: take, role: role, view: view, mode: mode,
                                           camera: settings, iosVersion: iosVersion)
+            recording.onFailure = { [weak self, weak recording] message in
+                self?.queue.async { [weak self, weak recording] in
+                    guard let self, self.recording === recording, recording != nil else { return }
+                    self.reportFailure(message)
+                }
+            }
             events.forEach(recording.log)
             self.failureReported = false
             self.recording = recording
@@ -180,7 +196,7 @@ final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unc
     }
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        if let failure = recording?.receive(sampleBuffer) { reportFailure(failure) }
+        recording?.receive(sampleBuffer)
     }
 
     func captureOutput(_ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {

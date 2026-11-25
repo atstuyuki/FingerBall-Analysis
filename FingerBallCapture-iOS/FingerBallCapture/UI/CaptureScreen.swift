@@ -55,6 +55,10 @@ struct CaptureScreen: View {
                         Text("選択してください").tag(nil as CameraMode?)
                         ForEach(model.modes, id: \.label) { Text($0.label).tag(Optional($0)) }
                     }
+                    if let mode = model.mode, mode.fps >= 120 {
+                        Text("高速撮影は停止後に動画を作成します。保存が完了するまでアプリを開いたままにしてください。1080p/240fpsでは1秒あたり約0.75 GBの一時領域が必要です。")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                     if !model.modes.contains(CameraMode.target) && !model.modes.isEmpty {
                         Text("この背面カメラで1080p/240fpsを選べません。録画形式を指定してください。")
                             .foregroundStyle(.orange)

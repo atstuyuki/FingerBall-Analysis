@@ -45,7 +45,8 @@ final class DeviceCaptureTests: XCTestCase {
         let frame = app.staticTexts["review.frame"]
         XCTAssertTrue(frame.label.hasPrefix("フレーム 2 /"), frame.label)
         let markBR = app.buttons["review.mark.BR"]
-        if !markBR.isHittable { app.swipeUp() }
+        for _ in 0..<3 where !markBR.isHittable { app.swipeUp() }
+        XCTAssertTrue(markBR.isHittable)
         let canMark = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: markBR)
         XCTAssertEqual(XCTWaiter.wait(for: [canMark], timeout: 10), .completed)
         markBR.tap()

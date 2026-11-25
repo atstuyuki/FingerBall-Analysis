@@ -9,7 +9,6 @@ final class EncoderBuffers {
     private let width: Int
     private let height: Int
     private let pixelFormat: OSType
-    private var format: CMVideoFormatDescription?
 
     init(source: CVPixelBuffer) throws {
         width = CVPixelBufferGetWidth(source)
@@ -31,11 +30,19 @@ final class EncoderBuffers {
         self.pool = pool
     }
 
-    func sample(from source: CVPixelBuffer, timestamp: CMTime) throws -> CMSampleBuffer? {
+    func copy(_ source: CVPixelBuffer) throws -> CVPixelBuffer? {
         guard CVPixelBufferGetWidth(source) == width, CVPixelBufferGetHeight(source) == height,
               CVPixelBufferGetPixelFormatType(source) == pixelFormat else {
             throw CaptureError.message("録画中にカメラの画素形式が変わりました")
         }
+        guard let destination = try allocate() else { return nil }
+        try copyPixels(from: source, to: destination)
+        CVBufferPropagateAttachments(source, destination)
+
+        return destination
+    }
+
+    func allocate() throws -> CVPixelBuffer? {
         let limit = [kCVPixelBufferPoolAllocationThresholdKey as String: 32]
         var destination: CVPixelBuffer?
         let allocation = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, pool,
@@ -44,24 +51,7 @@ final class EncoderBuffers {
         guard allocation == kCVReturnSuccess, let destination else {
             throw CaptureError.message("フレーム用バッファを確保できません (\(allocation))")
         }
-        try copyPixels(from: source, to: destination)
-        CVBufferPropagateAttachments(source, destination)
-
-        if format == nil {
-            let result = CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault,
-                                                                      imageBuffer: destination, formatDescriptionOut: &format)
-            guard result == noErr else { throw CaptureError.message("エンコーダーの画素形式を作成できません (\(result))") }
-        }
-        guard let format else { throw CaptureError.message("エンコーダーの画素形式がありません") }
-        var timing = CMSampleTimingInfo(duration: .invalid, presentationTimeStamp: timestamp, decodeTimeStamp: .invalid)
-        var sample: CMSampleBuffer?
-        let result = CMSampleBufferCreateReadyWithImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: destination,
-                                                               formatDescription: format, sampleTiming: &timing,
-                                                               sampleBufferOut: &sample)
-        guard result == noErr, let sample else {
-            throw CaptureError.message("動画サンプルを作成できません (\(result))")
-        }
-        return sample
+        return destination
     }
 
     private func copyPixels(from source: CVPixelBuffer, to destination: CVPixelBuffer) throws {

@@ -66,7 +66,7 @@ final class CaptureTests: XCTestCase {
                                       exposureDuration: frameTime, iso: 100, exposureMode: "locked",
                                       focusMode: "locked", lensPosition: 0, stabilization: "off", rotationDegrees: 0)
         let writer = try Recording(take: dummyTake(), role: .solo, view: .rear,
-                                   mode: CameraMode(width: 64, height: 64, fps: 240),
+                                   mode: CameraMode(width: 64, height: 64, fps: 30),
                                    camera: settings, iosVersion: "fixture", store: store)
         var buffer: CVPixelBuffer?
         XCTAssertEqual(CVPixelBufferCreate(kCFAllocatorDefault, 64, 64, kCVPixelFormatType_32BGRA,
@@ -89,7 +89,7 @@ final class CaptureTests: XCTestCase {
             XCTAssertEqual(CMSampleBufferCreateReadyWithImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixels,
                                                                      formatDescription: try XCTUnwrap(description),
                                                                      sampleTiming: &timing, sampleBufferOut: &sample), noErr)
-            XCTAssertNil(writer.receive(try XCTUnwrap(sample)))
+            writer.receive(try XCTUnwrap(sample))
             try await Task.sleep(for: .milliseconds(30))
         }
         let failure = await writer.finish(partialReason: nil)
@@ -105,6 +105,44 @@ final class CaptureTests: XCTestCase {
         let archive = try TakeArchive.create(writer.folder)
         defer { try? FileManager.default.removeItem(at: archive.deletingLastPathComponent()) }
         XCTAssertEqual(try Data(contentsOf: archive).prefix(2), Data([0x50, 0x4b]))
+    }
+
+    func testFrameSpoolRoundTripsTwoFramesInOrder() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let spool = try FrameSpool(folder: folder)
+
+        var buffer: CVPixelBuffer?
+        let attributes = [kCVPixelBufferIOSurfacePropertiesKey: [:]] as CFDictionary
+        XCTAssertEqual(CVPixelBufferCreate(kCFAllocatorDefault, 64, 64, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+                                           attributes, &buffer), kCVReturnSuccess)
+        let pixels = try XCTUnwrap(buffer)
+        let pool = try EncoderBuffers(source: pixels)
+        let source = try XCTUnwrap(pool.allocate())
+        let restored = try XCTUnwrap(pool.allocate())
+        for level: Int32 in [33, 169] {
+            CVPixelBufferLockBaseAddress(source, [])
+            for plane in 0..<CVPixelBufferGetPlaneCount(source) {
+                let size = CVPixelBufferGetHeightOfPlane(source, plane) * CVPixelBufferGetBytesPerRowOfPlane(source, plane)
+                memset(CVPixelBufferGetBaseAddressOfPlane(source, plane), level, size)
+            }
+            CVPixelBufferUnlockBaseAddress(source, [])
+            try spool.append(source)
+        }
+        try spool.rewind()
+        for level: UInt8 in [33, 169] {
+            try spool.read(into: restored)
+            CVPixelBufferLockBaseAddress(restored, .readOnly)
+            for plane in 0..<CVPixelBufferGetPlaneCount(restored) {
+                let base = try XCTUnwrap(CVPixelBufferGetBaseAddressOfPlane(restored, plane))
+                let size = CVPixelBufferGetHeightOfPlane(restored, plane) * CVPixelBufferGetBytesPerRowOfPlane(restored, plane)
+                XCTAssertEqual(Data(bytes: base, count: size), Data(repeating: level, count: size))
+            }
+            CVPixelBufferUnlockBaseAddress(restored, .readOnly)
+        }
+        try spool.discard()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: spool.url.path))
     }
 
     private func dummyTake() -> Take {

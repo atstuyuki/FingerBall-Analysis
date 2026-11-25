@@ -8,6 +8,7 @@ struct ReviewScreen: View {
     @State private var frames: [FrameTime] = []
     @State private var index = 0
     @State private var ready = false
+    @State private var seekID = UUID()
     @State private var issue: String?
     @State private var annotations = Annotations()
     @State private var export: Export?
@@ -93,10 +94,12 @@ struct ReviewScreen: View {
         let destination = min(max(proposed, 0), frames.count - 1)
         index = destination
         ready = false
+        let request = UUID()
+        seekID = request
         player.pause()
         player.seek(to: frames[destination].time, toleranceBefore: .zero, toleranceAfter: .zero) { finished in
             DispatchQueue.main.async {
-                if index == destination { ready = finished }
+                if seekID == request { ready = finished }
             }
         }
     }
@@ -105,7 +108,13 @@ struct ReviewScreen: View {
         if observed {
             // Playback controls can move the playhead independently of the frame buttons.
             let playhead = player.currentTime()
-            guard ready, player.rate == 0, frames[index].time == playhead else {
+            let selected = frames[index].time
+            let distance = abs(CMTimeSubtract(playhead, selected).seconds)
+            let previousGap = index > 0 ? CMTimeSubtract(selected, frames[index - 1].time).seconds : .infinity
+            let nextGap = index + 1 < frames.count ? CMTimeSubtract(frames[index + 1].time, selected).seconds : .infinity
+            // AVPlayer can round its reported playhead. Accept only within this frame's neighborhood.
+            let tolerance = min(0.001, min(previousGap, nextGap) / 4)
+            guard ready, player.rate == 0, distance <= tolerance else {
                 seek(index)
                 issue = "指定フレームに移動しました。映像を確認してから再度指定してください。"
                 return

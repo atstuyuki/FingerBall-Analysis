@@ -15,8 +15,10 @@
 		20A6C1E33A30B9A0DED98550 /* CaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A4B321547103E6BA1474E8 /* CaptureTests.swift */; };
 		23F1B83651209BF037FA4F00 /* Recording.swift in Sources */ = {isa = PBXBuildFile; fileRef = B637799651C36E8E83045ED4 /* Recording.swift */; };
 		2D6364F9BA1A261CD142CB7C /* DeviceCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4EA4E85EFD764D7036AAEDC /* DeviceCaptureTests.swift */; };
+		4A3C4AF56A1185CDAE20700A /* HardwareEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63AF2CA157EE8A33BE678B94 /* HardwareEncoder.swift */; };
 		4A75CFB80D2FF3EED670DA43 /* TakeArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36CB42C6978EFA9A7EE64E36 /* TakeArchive.swift */; };
 		56FCFC4C4350EB8B7191F8C5 /* Take.swift in Sources */ = {isa = PBXBuildFile; fileRef = 073A6C91F6F5CA52B0306066 /* Take.swift */; };
+		57E888C6983133A30AF28093 /* FrameSpool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00329E62A7607310848E46E /* FrameSpool.swift */; };
 		59BC7F4FFFF3B46DA7D00C16 /* AnalysisModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = D93455D6B5BB15ABDC35A872 /* AnalysisModule.swift */; };
 		690D4CD9C97EE2AEF5366629 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D984FF8FE7CE71C5712260 /* SessionStore.swift */; };
 		8811BF7A70B0B58E33A17AA5 /* VideoFrames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AAC62C966DBE3C56079438 /* VideoFrames.swift */; };
@@ -48,12 +50,14 @@
 		36CB42C6978EFA9A7EE64E36 /* TakeArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TakeArchive.swift; sourceTree = "<group>"; };
 		5CB636BEF9F39744047B14E8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		61A4B321547103E6BA1474E8 /* CaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureTests.swift; sourceTree = "<group>"; };
+		63AF2CA157EE8A33BE678B94 /* HardwareEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareEncoder.swift; sourceTree = "<group>"; };
 		87D984FF8FE7CE71C5712260 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		93B0DE9E7573352C14AD31D1 /* CaptureModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureModel.swift; sourceTree = "<group>"; };
 		959EC2B205F5564EEF845B6B /* Camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
 		B320539547D08E2DA8644D27 /* FingerBallCaptureApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingerBallCaptureApp.swift; sourceTree = "<group>"; };
 		B5509C2794434EE51EA0D167 /* FingerBallCaptureDeviceTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FingerBallCaptureDeviceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B637799651C36E8E83045ED4 /* Recording.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recording.swift; sourceTree = "<group>"; };
+		C00329E62A7607310848E46E /* FrameSpool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSpool.swift; sourceTree = "<group>"; };
 		C4EA4E85EFD764D7036AAEDC /* DeviceCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCaptureTests.swift; sourceTree = "<group>"; };
 		D5755D27FBC2810077CF6D3D /* PeerLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerLink.swift; sourceTree = "<group>"; };
 		D93455D6B5BB15ABDC35A872 /* AnalysisModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisModule.swift; sourceTree = "<group>"; };
@@ -132,6 +136,8 @@
 			children = (
 				959EC2B205F5564EEF845B6B /* Camera.swift */,
 				E08E586DBACEF5EF6FFA6598 /* EncoderBuffers.swift */,
+				C00329E62A7607310848E46E /* FrameSpool.swift */,
+				63AF2CA157EE8A33BE678B94 /* HardwareEncoder.swift */,
 				B637799651C36E8E83045ED4 /* Recording.swift */,
 				05AAC62C966DBE3C56079438 /* VideoFrames.swift */,
 			);
@@ -283,6 +289,8 @@
 				FB47091A9B7D724DD32A5292 /* CaptureScreen.swift in Sources */,
 				12EFA91BBAA093803E9200C7 /* EncoderBuffers.swift in Sources */,
 				1AA660A2003F8E816E03811F /* FingerBallCaptureApp.swift in Sources */,
+				57E888C6983133A30AF28093 /* FrameSpool.swift in Sources */,
+				4A3C4AF56A1185CDAE20700A /* HardwareEncoder.swift in Sources */,
 				0430E684E81B0E08E7579BAA /* PeerLink.swift in Sources */,
 				23F1B83651209BF037FA4F00 /* Recording.swift in Sources */,
 				90D9EE2BBB887180BF3FA2B2 /* ReviewScreen.swift in Sources */,
