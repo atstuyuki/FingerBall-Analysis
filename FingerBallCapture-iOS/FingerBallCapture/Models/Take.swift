@@ -89,6 +89,9 @@ struct Metadata: Codable {
     var frameCount: Int
     var dropCount: Int
     var actualVideoProperties: VideoProperties?
+    var movieOrigin: FrameTime?
+    var writerAcceptedCount: Int?
+    var inferredMissingCount: Int?
     var status: String
     var error: String?
 }
@@ -96,6 +99,7 @@ struct Metadata: Codable {
 struct CaptureEvent: Codable {
     var kind: String
     var detail: String
+    var sourcePTS: FrameTime?
     var wallTime = Date()
     var uptime = ProcessInfo.processInfo.systemUptime
 }
@@ -108,6 +112,8 @@ extension Metadata {
         case throwingHand = "throwing_hand", deviceModel = "device_model", appVersion = "app_version"
         case iosVersion = "ios_version", selectedFormat = "selected_format", cameraSettings = "camera_settings"
         case frameCount = "frame_count", dropCount = "drop_count", actualVideoProperties = "actual_video_properties"
+        case movieOrigin = "movie_origin", writerAcceptedCount = "writer_accepted_count"
+        case inferredMissingCount = "inferred_missing_count"
         case status, error
     }
 }

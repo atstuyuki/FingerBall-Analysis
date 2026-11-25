@@ -38,7 +38,7 @@ struct SessionStore {
     }
 
     func takes() -> [URL] {
-        guard let items = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.contentModificationDateKey]) else {
+        guard let items = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) else {
             return []
         }
         return items.compactMap { $0 as? URL }
@@ -47,6 +47,23 @@ struct SessionStore {
                 ($0.resourceValuesOrNilDate ?? .distantPast) > ($1.resourceValuesOrNilDate ?? .distantPast)
             }
             .map { $0.deletingLastPathComponent() }
+    }
+
+    func markInterruptedTakes() {
+        for folder in takes() {
+            let url = folder.appending(path: "metadata.json")
+            guard let data = try? Data(contentsOf: url),
+                  var metadata = try? JSONDecoder().decode(Metadata.self, from: data),
+                  metadata.status == "preparing" else { continue }
+            metadata.status = "partial"
+            metadata.error = Recording.canRecover(folder)
+                ? "前回の撮影が中断されました。テイクを開いてMOVを復元してください。"
+                : "前回の撮影が中断されました。保存済みファイルを確認してください。"
+            do {
+                try Self.writeJSON(metadata, to: url)
+                try Self.log(CaptureEvent(kind: "interrupted_on_previous_run", detail: metadata.error ?? ""), to: folder)
+            } catch { NSLog("FingerBall interrupted-take update: %@", error.localizedDescription) }
+        }
     }
 
     static func encoder() -> JSONEncoder {

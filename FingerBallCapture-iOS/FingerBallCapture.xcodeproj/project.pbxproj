@@ -24,6 +24,7 @@
 		8811BF7A70B0B58E33A17AA5 /* VideoFrames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AAC62C966DBE3C56079438 /* VideoFrames.swift */; };
 		90D9EE2BBB887180BF3FA2B2 /* ReviewScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE2F3E3610FD3B7BC9DDDE00 /* ReviewScreen.swift */; };
 		B4F81EB49A9413B368A9A68C /* Annotations.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71E3FB9E131677EFE5184FB /* Annotations.swift */; };
+		E1DCD358EE7B5E86B1CF06A1 /* SavedFrameIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7461CB3F019004D9C3C46C4F /* SavedFrameIndex.swift */; };
 		FB47091A9B7D724DD32A5292 /* CaptureScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8CCF9B7114992311DBE49F /* CaptureScreen.swift */; };
 /* End PBXBuildFile section */
 
@@ -51,6 +52,7 @@
 		5CB636BEF9F39744047B14E8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		61A4B321547103E6BA1474E8 /* CaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureTests.swift; sourceTree = "<group>"; };
 		63AF2CA157EE8A33BE678B94 /* HardwareEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareEncoder.swift; sourceTree = "<group>"; };
+		7461CB3F019004D9C3C46C4F /* SavedFrameIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedFrameIndex.swift; sourceTree = "<group>"; };
 		87D984FF8FE7CE71C5712260 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		93B0DE9E7573352C14AD31D1 /* CaptureModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureModel.swift; sourceTree = "<group>"; };
 		959EC2B205F5564EEF845B6B /* Camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
@@ -139,6 +141,7 @@
 				C00329E62A7607310848E46E /* FrameSpool.swift */,
 				63AF2CA157EE8A33BE678B94 /* HardwareEncoder.swift */,
 				B637799651C36E8E83045ED4 /* Recording.swift */,
+				7461CB3F019004D9C3C46C4F /* SavedFrameIndex.swift */,
 				05AAC62C966DBE3C56079438 /* VideoFrames.swift */,
 			);
 			path = Capture;
@@ -294,6 +297,7 @@
 				0430E684E81B0E08E7579BAA /* PeerLink.swift in Sources */,
 				23F1B83651209BF037FA4F00 /* Recording.swift in Sources */,
 				90D9EE2BBB887180BF3FA2B2 /* ReviewScreen.swift in Sources */,
+				E1DCD358EE7B5E86B1CF06A1 /* SavedFrameIndex.swift in Sources */,
 				690D4CD9C97EE2AEF5366629 /* SessionStore.swift in Sources */,
 				56FCFC4C4350EB8B7191F8C5 /* Take.swift in Sources */,
 				4A75CFB80D2FF3EED670DA43 /* TakeArchive.swift in Sources */,

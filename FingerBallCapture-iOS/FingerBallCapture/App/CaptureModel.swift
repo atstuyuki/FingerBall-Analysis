@@ -42,6 +42,7 @@ final class CaptureModel: ObservableObject {
     private var finalReply: Reply?
     private var lastIssue: String?
     private var inForeground = false
+    private var conversionPause: ConversionPause?
     private var cameraRequest = 0
 
     init() {
@@ -66,6 +67,7 @@ final class CaptureModel: ObservableObject {
         peer.onConnection = { [weak self] connected in self?.connectionChanged(connected) }
         peer.onPacket = { [weak self] packet, event in self?.receive(packet, event: event) }
         peer.onError = { [weak self] message in self?.issue = message }
+        SessionStore.local.markInterruptedTakes()
         refresh()
     }
 
@@ -87,6 +89,7 @@ final class CaptureModel: ObservableObject {
             refresh()
             Task { await prepare() }
         } else {
+            conversionPause?.request()
             cameraRequest += 1
             cameraReady = false
             if state.permitsNewTake { camera.suspendPreview() }
@@ -202,20 +205,25 @@ final class CaptureModel: ObservableObject {
     private func finish() {
         guard state == .recording else { return }
         state = .finishing
+        let pause = ConversionPause()
+        if !inForeground { pause.request() }
+        conversionPause = pause
         Task {
             let app = UIApplication.shared
             var backgroundTask: UIBackgroundTaskIdentifier = .invalid
             backgroundTask = app.beginBackgroundTask(withName: "Finalize FingerBall take") {
+                pause.request()
                 if backgroundTask != .invalid {
                     app.endBackgroundTask(backgroundTask)
                     backgroundTask = .invalid
                 }
             }
             defer {
+                conversionPause = nil
                 if backgroundTask != .invalid { app.endBackgroundTask(backgroundTask) }
             }
             do {
-                let (folder, failure) = try await camera.stop(partialReason: pendingFailure)
+                let (folder, failure) = try await camera.stop(partialReason: pendingFailure, pause: pause)
                 lastFolder = folder
                 for event in events { appendToSaved(event, folder: folder) }
                 events = []

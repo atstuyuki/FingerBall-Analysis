@@ -8,10 +8,50 @@ final class FrameSpool {
     private let descriptor: Int32
     private var attachments: CFDictionary?
 
-    init(folder: URL) throws {
+    struct Layout: Codable {
+        let width: Int
+        let height: Int
+        let pixelFormat: OSType
+        let planeBytes: [Int]
+        let attachments: Data?
+
+        init(_ image: CVPixelBuffer) {
+            width = CVPixelBufferGetWidth(image)
+            height = CVPixelBufferGetHeight(image)
+            pixelFormat = CVPixelBufferGetPixelFormatType(image)
+            planeBytes = FrameSpool.planeBytes(image)
+            if let values = CVBufferCopyAttachments(image, .shouldPropagate) {
+                attachments = try? PropertyListSerialization.data(fromPropertyList: values, format: .binary, options: 0)
+            } else { attachments = nil }
+        }
+
+        func makeBuffer() throws -> CVPixelBuffer {
+            var image: CVPixelBuffer?
+            let attributes = [kCVPixelBufferIOSurfacePropertiesKey as String: [:]] as CFDictionary
+            guard CVPixelBufferCreate(nil, width, height, pixelFormat, attributes, &image) == kCVReturnSuccess,
+                  let image, FrameSpool.planeBytes(image) == planeBytes else {
+                throw CaptureError.message("保存された画素配置を復元できません")
+            }
+            return image
+        }
+    }
+
+    static func planeBytes(_ image: CVPixelBuffer) -> [Int] {
+        let planes = CVPixelBufferGetPlaneCount(image)
+        return planes == 0
+            ? [CVPixelBufferGetHeight(image) * CVPixelBufferGetBytesPerRow(image)]
+            : (0..<planes).map { CVPixelBufferGetHeightOfPlane(image, $0) * CVPixelBufferGetBytesPerRowOfPlane(image, $0) }
+    }
+
+    init(folder: URL, reading: Bool = false, layout: Layout? = nil) throws {
         url = folder.appending(path: ".capture-frames")
-        descriptor = open(url.path, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR)
+        descriptor = open(url.path, reading ? O_RDONLY : O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR)
         guard descriptor >= 0 else { throw Self.fileError() }
+        if let data = layout?.attachments,
+           let values = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
+           let dictionary = values as? [String: Any] {
+            attachments = dictionary as CFDictionary
+        }
     }
 
     deinit { close(descriptor) }

@@ -4,7 +4,7 @@ import CoreGraphics
 // The capture queue copies source surfaces. The processing queue encodes and writes them.
 // Finish takes ownership after Capture detaches the writer and the processing queue drains.
 final class Recording {
-    static let header = "record_index,source_pts_value,source_pts_timescale,source_pts_seconds,writer_pts_seconds,accepted_by_writer,reason\n"
+    static let header = "record_index,source_pts_value,source_pts_timescale,source_pts_seconds,writer_pts_seconds,accepted_by_writer,reason,writer_pts_value,writer_pts_timescale\n"
     let folder: URL
     private let writer: AVAssetWriter
     private var input: AVAssetWriterInput?
@@ -13,11 +13,35 @@ final class Recording {
     private var staged: [PendingFrame] = []
     private var lastStaged: CMTime?
     private var stagedFrameCount = 0
+    private var journal: FileHandle?
+    private var spoolLayout: FrameSpool.Layout?
+    private var lastObservedPTS: CMTime?
+    private let recovering: Bool
+
     private let rotation: CGAffineTransform
-    private struct PendingFrame {
+    private struct PendingFrame: Codable {
         let pts: CMTime
         let duration: CMTime
         let dropReason: String?
+
+        private enum CodingKeys: String, CodingKey { case pts, duration, dropReason }
+        init(pts: CMTime, duration: CMTime, dropReason: String?) {
+            self.pts = pts
+            self.duration = duration
+            self.dropReason = dropReason
+        }
+        init(from decoder: Decoder) throws {
+            let box = try decoder.container(keyedBy: CodingKeys.self)
+            pts = try box.decodeIfPresent(FrameTime.self, forKey: .pts)?.time ?? .invalid
+            duration = try box.decodeIfPresent(FrameTime.self, forKey: .duration)?.time ?? .invalid
+            dropReason = try box.decodeIfPresent(String.self, forKey: .dropReason)
+        }
+        func encode(to encoder: Encoder) throws {
+            var box = encoder.container(keyedBy: CodingKeys.self)
+            if pts.isNumeric { try box.encode(FrameTime(pts), forKey: .pts) }
+            if duration.isNumeric { try box.encode(FrameTime(duration), forKey: .duration) }
+            try box.encodeIfPresent(dropReason, forKey: .dropReason)
+        }
     }
     private var pending: [Int: PendingFrame] = [:]
     private var nextToWrite = 0
@@ -41,9 +65,15 @@ final class Recording {
 
     init(take: Take, role: DeviceRole, view: Viewpoint, mode: CameraMode,
          camera: CameraSettings, iosVersion: String, store: SessionStore = .local) throws {
+        if mode.fps >= 120,
+           let available = try? store.root.deletingLastPathComponent().resourceValues(forKeys: [.volumeAvailableCapacityKey]).volumeAvailableCapacity,
+           available < 128 * 1024 * 1024 + Int(mode.width) * Int(mode.height) * 3 / 2 * mode.fps {
+            throw CaptureError.message("高速録画を開始するための空き容量が不足しています")
+        }
         let device = SessionStore.deviceID
         let folder = try store.createTake(take, device: device, view: view)
         self.folder = folder
+        recovering = false
         metadata = Metadata(sessionID: take.sessionID, takeID: take.takeID, deviceID: device, deviceRole: role,
                             viewType: view, subjectID: take.subjectID, throwNumber: take.throwNumber,
                             throwingHand: take.throwingHand, deviceModel: SessionStore.deviceModel,
@@ -62,16 +92,25 @@ final class Recording {
         csv = try FileHandle(forWritingTo: csvURL)
         try csv.seekToEnd()
         try SessionStore.writeJSON(metadata, to: folder.appending(path: "metadata.json"))
+        if spool != nil {
+            let url = folder.appending(path: ".capture-journal")
+            try Data().write(to: url)
+            journal = try FileHandle(forWritingTo: url)
+        }
         log(CaptureEvent(kind: "armed", detail: mode.label + ", codec=" + encoder.codec))
     }
 
     func log(_ event: CaptureEvent) {
-        processing.async { self.writeEvent(event) }
+        processing.async {
+            var event = event
+            if event.sourcePTS == nil, let pts = self.lastObservedPTS { event.sourcePTS = FrameTime(pts) }
+            self.writeEvent(event)
+        }
     }
 
     private func writeEvent(_ event: CaptureEvent) {
         do { try SessionStore.log(event, to: folder) }
-        catch { failure = failure ?? error.localizedDescription }
+        catch { recordFailure(error.localizedDescription) }
     }
 
     func receive(_ sample: CMSampleBuffer) {
@@ -97,6 +136,7 @@ final class Recording {
             }
             processing.async {
                 defer { self.slots.signal() }
+                self.observe(pts)
                 if let spool = self.spool {
                     self.stage(owned, pts: pts, duration: duration, spool: spool)
                 } else {
@@ -120,6 +160,16 @@ final class Recording {
             reason = "non_increasing_pts"
         } else {
             do {
+                if spoolLayout == nil {
+                    let layout = FrameSpool.Layout(image)
+                    try SessionStore.writeJSON(layout, to: folder.appending(path: ".capture-layout"))
+                    spoolLayout = layout
+                }
+                if stagedFrameCount % max(1, metadata.selectedFormat.fps / 2) == 0,
+                   let available = try? folder.resourceValues(forKeys: [.volumeAvailableCapacityKey]).volumeAvailableCapacity,
+                   available < max(128 * 1024 * 1024, (spoolLayout?.planeBytes.reduce(0, +) ?? 0) * 4) {
+                    throw CaptureError.message("空き容量が不足したため高速録画を停止しました")
+                }
                 try spool.append(image)
                 stagedFrameCount += 1
                 lastStaged = pts
@@ -128,7 +178,7 @@ final class Recording {
                 recordFailure(error.localizedDescription)
             }
         }
-        staged.append(PendingFrame(pts: pts, duration: duration, dropReason: reason))
+        persistStaged(PendingFrame(pts: pts, duration: duration, dropReason: reason))
     }
 
     private func submit(_ image: CVPixelBuffer, pts: CMTime, duration: CMTime, duringCapture: Bool = true) {
@@ -165,13 +215,39 @@ final class Recording {
     }
 
     private func recordDroppedFrame(_ pts: CMTime, reason: String) {
+        observe(pts)
         if spool != nil {
-            staged.append(PendingFrame(pts: pts, duration: .invalid, dropReason: reason))
+            persistStaged(PendingFrame(pts: pts, duration: .invalid, dropReason: reason))
         } else {
             drain()
             appendPending(pts, duration: .invalid, reason: reason)
             if pending.count >= 1_024 { recordFailure("MOVの書き込みが映像入力に追いつきません") }
         }
+    }
+
+    private func observe(_ pts: CMTime) {
+        guard pts.isNumeric else { return }
+        if let previous = lastObservedPTS {
+            guard pts > previous else { return }
+            let intervals = CMTimeSubtract(pts, previous).seconds * Double(metadata.selectedFormat.fps)
+            if intervals > 1.5 && intervals < Double(Int32.max) {
+                let missing = Int(intervals.rounded()) - 1
+                metadata.inferredMissingCount = (metadata.inferredMissingCount ?? 0) + missing
+                writeEvent(CaptureEvent(kind: "source_pts_gap", detail: "estimated_missing=\(missing), intervals=\(intervals)",
+                                        sourcePTS: FrameTime(pts)))
+            }
+        }
+        lastObservedPTS = pts
+    }
+
+    private func persistStaged(_ frame: PendingFrame) {
+        staged.append(frame)
+        guard let journal else { return }
+        do {
+            var line = try JSONEncoder().encode(frame)
+            line.append(10)
+            try journal.write(contentsOf: line)
+        } catch { recordFailure(error.localizedDescription) }
     }
 
     private func appendPending(_ pts: CMTime, duration: CMTime, reason: String?) {
@@ -215,7 +291,7 @@ final class Recording {
             }
             guard result.status == noErr, let sample = result.sample else {
                 encoded = nil
-                writeRow(frame.pts, written: false, reason: "encoder_drop_\(result.status)")
+                writeRow(frame.pts, written: false, reason: result.status == noErr ? "encoder_frame_dropped" : "encoder_error_\(result.status)")
                 continue
             }
             do {
@@ -241,13 +317,13 @@ final class Recording {
 
     private func writeRow(_ pts: CMTime, written: Bool, reason: String) {
         let source = pts.isNumeric ? String(pts.seconds) : ""
-        let relative = written ? origin.map { String(CMTimeSubtract(pts, $0).seconds) } ?? "" : ""
-        let line = "\(nextToWrite),\(pts.value),\(pts.timescale),\(source),\(relative),\(written),\(reason)\n"
+        let relative = written ? origin.map { CMTimeSubtract(pts, $0) } : nil
+        let line = "\(nextToWrite),\(pts.value),\(pts.timescale),\(source),\(relative.map { String($0.seconds) } ?? ""),\(written),\(reason),\(relative.map { String($0.value) } ?? ""),\(relative.map { String($0.timescale) } ?? "")\n"
         pending.removeValue(forKey: nextToWrite)
         nextToWrite += 1
         if !written { metadata.dropCount += 1 }
         csvBuffer.append(contentsOf: line.utf8)
-        if csvBuffer.count >= 16_384 { flushCSV() }
+        if csvBuffer.count >= 4_096 { flushCSV() }
     }
 
     private func flushCSV() {
@@ -256,10 +332,11 @@ final class Recording {
         csvBuffer.removeAll(keepingCapacity: true)
     }
 
-    private func encodeStagedFrames(_ spool: FrameSpool) async {
+    private func encodeStagedFrames(_ spool: FrameSpool, shouldDefer: () -> Bool) async {
         do {
             try spool.rewind()
             for frame in staged {
+                if shouldDefer() { return }
                 if let reason = frame.dropReason {
                     appendPending(frame.pts, duration: frame.duration, reason: reason)
                     drain()
@@ -268,6 +345,7 @@ final class Recording {
                 let deadline = Date().addingTimeInterval(5)
                 var image = try encoderBuffers?.allocate()
                 while (image == nil || pending.count >= 48) && Date() < deadline {
+                    if shouldDefer() { return }
                     drain()
                     if image == nil { image = try encoderBuffers?.allocate() }
                     if image == nil || pending.count >= 48 { try await Task.sleep(for: .milliseconds(3)) }
@@ -288,13 +366,28 @@ final class Recording {
         staged.removeAll()
     }
 
-    func finish(partialReason: String?) async -> String? {
+    func finish(partialReason: String?, shouldDefer: @escaping () -> Bool = { false }) async -> String? {
         await withCheckedContinuation { continuation in
             processing.async { continuation.resume() }
         }
         failure = failure ?? partialReason
+        try? journal?.close()
+        journal = nil
+        if recovering {
+            metadata.inferredMissingCount = 0
+            for frame in staged { observe(frame.pts) }
+        }
+        if spool != nil && shouldDefer() {
+            return deferConversion()
+        }
         writeEvent(CaptureEvent(kind: "finishing", detail: failure ?? "stop"))
-        if let spool { await encodeStagedFrames(spool) }
+        if let spool {
+            await encodeStagedFrames(spool, shouldDefer: shouldDefer)
+            if shouldDefer() {
+                if writer.status == .writing { writer.cancelWriting() }
+                return deferConversion()
+            }
+        }
         do { try encoder.complete() }
         catch { failure = failure ?? error.localizedDescription }
         let deadline = Date().addingTimeInterval(5)
@@ -319,15 +412,17 @@ final class Recording {
         } else if let origin {
             do {
                 var (properties, movie) = try await VideoFrames.inspect(folder.appending(path: "original.mov"))
-                properties.ptsMatch = VideoFrames.matches(source: accepted, movie: movie, origin: origin)
+                metadata.frameCount = properties.frameCount
+                let frameIndex = try SavedFrameIndex.read(folder: folder, movie: movie, origin: FrameTime(origin))
+                properties.ptsMatch = frameIndex.unmatchedMovie == 0 && frameIndex.unmatchedWriter == 0
+                    && VideoFrames.matches(source: accepted, movie: movie, origin: origin)
                 metadata.actualVideoProperties = properties
+                try frameIndex.writeMovieIndex(to: folder)
                 writeEvent(CaptureEvent(kind: "video_verification",
                                  detail: "writer=\(accepted.count), mov=\(movie.count), pts_match=\(properties.ptsMatch)"))
-                if properties.ptsMatch && accepted.count == stagedFrameCount {
-                    do { try spool?.discard() }
-                    catch { writeEvent(CaptureEvent(kind: "staging_cleanup_failed", detail: error.localizedDescription)) }
-                }
                 if !properties.ptsMatch {
+                    writeEvent(CaptureEvent(kind: "pts_mismatch_summary",
+                                            detail: "unmatched_writer=\(frameIndex.unmatchedWriter), unmatched_movie=\(frameIndex.unmatchedMovie)"))
                     let mismatch = zip(accepted, movie).enumerated().first {
                         CMTimeSubtract($0.element.0.time, origin) != $0.element.1.time
                     }
@@ -342,11 +437,100 @@ final class Recording {
             } catch { failure = failure ?? error.localizedDescription }
         }
         writeEvent(CaptureEvent(kind: failure == nil ? "saved" : "partial", detail: failure ?? "completed"))
-        metadata.frameCount = accepted.count
+        metadata.writerAcceptedCount = accepted.count
+        metadata.movieOrigin = origin.map(FrameTime.init)
+        metadata.inferredMissingCount = metadata.inferredMissingCount ?? 0
+        metadata.schemaVersion = 2
         metadata.status = failure == nil ? "saved" : "partial"
         metadata.error = failure
-        do { try SessionStore.writeJSON(metadata, to: folder.appending(path: "metadata.json")) }
-        catch { failure = failure ?? error.localizedDescription }
+        do {
+            try SessionStore.writeJSON(metadata, to: folder.appending(path: "metadata.json"))
+            if !recovering, metadata.actualVideoProperties?.ptsMatch == true, accepted.count == stagedFrameCount, spool != nil {
+                Self.removeScratch(in: folder)
+            }
+        } catch { failure = failure ?? error.localizedDescription }
         return failure
+    }
+
+    private func deferConversion() -> String {
+        let message = "録画を一時保存しました。テイクを開いてMOVを復元してください。"
+        metadata.status = "partial"
+        metadata.error = message
+        try? csv.close()
+        writeEvent(CaptureEvent(kind: "conversion_deferred", detail: message))
+        try? SessionStore.writeJSON(metadata, to: folder.appending(path: "metadata.json"))
+        return message
+    }
+
+    private static func removeScratch(in folder: URL) {
+        for name in [".capture-frames", ".capture-journal", ".capture-layout"] {
+            try? FileManager.default.removeItem(at: folder.appending(path: name))
+        }
+    }
+
+    static func canRecover(_ folder: URL) -> Bool {
+        [".capture-frames", ".capture-journal", ".capture-layout"].allSatisfy {
+            FileManager.default.fileExists(atPath: folder.appending(path: $0).path)
+        }
+    }
+
+    private init(recovering source: URL, destination: URL) throws {
+        folder = destination
+        recovering = true
+        metadata = try JSONDecoder().decode(Metadata.self, from: Data(contentsOf: source.appending(path: "metadata.json")))
+        metadata.frameCount = 0
+        metadata.dropCount = 0
+        metadata.actualVideoProperties = nil
+        let layout = try JSONDecoder().decode(FrameSpool.Layout.self,
+                                              from: Data(contentsOf: source.appending(path: ".capture-layout")))
+        let raw = source.appending(path: ".capture-frames")
+        let size = try raw.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        let bytesPerFrame = layout.planeBytes.reduce(0, +)
+        guard bytesPerFrame > 0 else { throw CaptureError.message("復元できる画素情報がありません") }
+        var available = size / bytesPerFrame
+        let data = try Data(contentsOf: source.appending(path: ".capture-journal"))
+        let records = data.split(separator: 10, omittingEmptySubsequences: false).dropLast()
+        for record in records {
+            let frame = try JSONDecoder().decode(PendingFrame.self, from: Data(record))
+            if frame.dropReason == nil {
+                guard available > 0 else { break }
+                available -= 1
+                stagedFrameCount += 1
+            }
+            staged.append(frame)
+        }
+        guard stagedFrameCount > 0 else { throw CaptureError.message("復元できる完全なフレームがありません") }
+        spool = try FrameSpool(folder: source, reading: true, layout: layout)
+        encoderBuffers = try EncoderBuffers(source: layout.makeBuffer())
+        writer = try AVAssetWriter(outputURL: destination.appending(path: "original.mov"), fileType: .mov)
+        encoder = try HardwareEncoder(mode: metadata.selectedFormat)
+        rotation = CGAffineTransform(rotationAngle: CGFloat(metadata.cameraSettings.rotationDegrees) * .pi / 180)
+        maximumQueuedFrames = 32
+        slots = DispatchSemaphore(value: 32)
+        let csvURL = destination.appending(path: "frame_timestamps.csv")
+        try Data(Self.header.utf8).write(to: csvURL)
+        csv = try FileHandle(forWritingTo: csvURL)
+        try csv.seekToEnd()
+    }
+
+    static func recover(_ folder: URL, shouldDefer: @escaping () -> Bool) async throws {
+        let work = folder.appending(path: ".recovery-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: work) }
+        let recording = try Recording(recovering: folder, destination: work)
+        let failure = await recording.finish(partialReason: "中断後に保存済みのフレームを復元しました", shouldDefer: shouldDefer)
+        guard !shouldDefer(), recording.metadata.actualVideoProperties?.ptsMatch == true,
+              recording.metadata.frameCount == recording.stagedFrameCount else {
+            throw CaptureError.message(failure ?? "復元結果を検証できません")
+        }
+        for name in ["original.mov", "frame_timestamps.csv", "verified_movie_frames.csv", "metadata.json"] {
+            let target = folder.appending(path: name)
+            let staged = work.appending(path: name)
+            if rename(staged.path, target.path) != 0 {
+                throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
+            }
+        }
+        try? SessionStore.log(CaptureEvent(kind: "recovered", detail: "\(recording.metadata.frameCount) frames"), to: folder)
+        removeScratch(in: folder)
     }
 }

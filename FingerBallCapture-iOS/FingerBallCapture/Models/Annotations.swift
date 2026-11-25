@@ -17,6 +17,8 @@ struct EventAnnotation: Codable, Equatable {
     var frameIndex: Int?
     var moviePTS: FrameTime?
     var observation: String
+    var sourceRecordIndex: Int?
+    var sourcePTS: FrameTime?
     var provenance = "manual"
 }
 

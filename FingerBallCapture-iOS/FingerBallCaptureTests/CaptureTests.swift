@@ -145,6 +145,56 @@ final class CaptureTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: spool.url.path))
     }
 
+    func testInterruptedSpoolCanRecoverCompleteJournaledFrames() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = SessionStore(root: root)
+        let take = dummyTake()
+        let folder = try store.createTake(take, device: UUID(), view: .rear)
+        let timebase: Int32 = 30
+        let duration = FrameTime(CMTime(value: 1, timescale: timebase))
+        let camera = CameraSettings(camera: "fixture", fieldOfViewDegrees: 60, zoom: 1,
+                                    exposureDuration: duration, iso: 100, exposureMode: "locked",
+                                    focusMode: "locked", lensPosition: 0, stabilization: "off", rotationDegrees: 0)
+        let metadata = Metadata(sessionID: take.sessionID, takeID: take.takeID, deviceID: UUID(), deviceRole: .solo,
+                                viewType: .rear, subjectID: take.subjectID, throwNumber: 3, throwingHand: "R",
+                                deviceModel: "fixture", appVersion: "fixture", iosVersion: "fixture",
+                                selectedFormat: CameraMode(width: 64, height: 64, fps: 30),
+                                cameraSettings: camera, frameCount: 0, dropCount: 0, status: "preparing")
+        try SessionStore.writeJSON(metadata, to: folder.appending(path: "metadata.json"))
+
+        var buffer: CVPixelBuffer?
+        let attributes = [kCVPixelBufferIOSurfacePropertiesKey: [:]] as CFDictionary
+        XCTAssertEqual(CVPixelBufferCreate(nil, 64, 64, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+                                           attributes, &buffer), kCVReturnSuccess)
+        let pool = try EncoderBuffers(source: XCTUnwrap(buffer))
+        let pixels = try XCTUnwrap(pool.allocate())
+        try SessionStore.writeJSON(FrameSpool.Layout(pixels), to: folder.appending(path: ".capture-layout"))
+        do {
+            let spool = try FrameSpool(folder: folder)
+            for _ in 0..<3 { try spool.append(pixels) }
+        }
+        var journal = ""
+        for value in 20...22 {
+            journal += "{\"pts\":{\"value\":\(value),\"timescale\":30},\"duration\":{\"value\":1,\"timescale\":30}}\n"
+        }
+        journal += "{\"pts\":"
+        try Data(journal.utf8).write(to: folder.appending(path: ".capture-journal"))
+        store.markInterruptedTakes()
+        let interrupted = try JSONDecoder().decode(Metadata.self, from: Data(contentsOf: folder.appending(path: "metadata.json")))
+        XCTAssertEqual(interrupted.status, "partial")
+        XCTAssertTrue(Recording.canRecover(folder))
+
+        try await Recording.recover(folder, shouldDefer: { false })
+        let (_, frames) = try await VideoFrames.inspect(folder.appending(path: "original.mov"))
+        XCTAssertEqual(frames.count, 3)
+        let saved = try JSONDecoder().decode(Metadata.self, from: Data(contentsOf: folder.appending(path: "metadata.json")))
+        XCTAssertEqual(saved.actualVideoProperties?.ptsMatch, true)
+        let index = try SavedFrameIndex.read(folder: folder, movie: frames, origin: XCTUnwrap(saved.movieOrigin))
+        XCTAssertEqual(index.byMovieFrame[1]?.source.value, 21)
+        XCTAssertFalse(Recording.canRecover(folder))
+    }
+
     private func dummyTake() -> Take {
         Take(sessionID: UUID(), takeID: UUID(), subjectID: "TEST_001", throwNumber: 3, throwingHand: "R")
     }

@@ -174,14 +174,14 @@ final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unc
         queue.async { self.recording?.log(event) }
     }
 
-    func stop(partialReason: String? = nil) async throws -> (URL, String?) {
+    func stop(partialReason: String? = nil, pause: ConversionPause = ConversionPause()) async throws -> (URL, String?) {
         let current: Recording = try await perform {
             guard let recording = self.recording else { throw CaptureError.message("録画がありません") }
             self.recording = nil
             self.finishing = true
             return recording
         }
-        let failure = await current.finish(partialReason: partialReason)
+        let failure = await current.finish(partialReason: partialReason, shouldDefer: { pause.isRequested })
         await clearFinishing()
         return (current.folder, failure)
     }

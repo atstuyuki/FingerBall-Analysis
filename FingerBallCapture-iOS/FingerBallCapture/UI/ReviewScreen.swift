@@ -3,6 +3,10 @@ import AVKit
 
 struct ReviewScreen: View {
     let folder: URL
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var recovery: ConversionPause?
+    @State private var sourceFrames: [Int: SavedFrameIndex.Entry] = [:]
+    @State private var recoverable = false
     @State private var player = AVPlayer()
     @State private var metadata: Metadata?
     @State private var frames: [FrameTime] = []
@@ -19,6 +23,12 @@ struct ReviewScreen: View {
                 VideoPlayer(player: player)
                     .frame(height: 280)
                 if let issue { Text(issue).foregroundStyle(.red) }
+                if let error = metadata?.error { Text(error).foregroundStyle(.orange) }
+                if recoverable {
+                    Button(recovery == nil ? "一時保存からMOVを復元" : "MOVを復元中", action: recover)
+                        .disabled(recovery != nil)
+                        .accessibilityIdentifier("review.recover")
+                }
                 if let properties = metadata?.actualVideoProperties {
                     let dimensions = "\(properties.width)×\(properties.height)"
                     let fps = String(format: "%.2f", properties.nominalFPS)
@@ -27,6 +37,9 @@ struct ReviewScreen: View {
                         .accessibilityIdentifier("review.videoProperties")
                 }
                 if let metadata {
+                    if let estimated = metadata.inferredMissingCount, estimated > 0 {
+                        Text("時刻差から推定した欠落 \(estimated)フレーム")
+                    }
                     Text("保存 \(metadata.frameCount)フレーム · 欠落 \(metadata.dropCount)フレーム")
                         .foregroundStyle(metadata.dropCount == 0 ? Color.secondary : Color.orange)
                 }
@@ -65,6 +78,7 @@ struct ReviewScreen: View {
                 }
             }
             Button("テイクをZIPで共有", systemImage: "square.and.arrow.up", action: exportTake)
+                .disabled(recovery != nil)
         }
         .navigationTitle("撮影レビュー")
         .task {
@@ -76,16 +90,49 @@ struct ReviewScreen: View {
                 do { annotations = try JSONDecoder().decode(Annotations.self, from: Data(contentsOf: annotationURL)) }
                 catch { issue = error.localizedDescription }
             }
-            do {
-                let url = folder.appending(path: "original.mov")
-                frames = try await VideoFrames.inspect(url).1
-                player.replaceCurrentItem(with: AVPlayerItem(url: url))
-                seek(0)
-            } catch { issue = error.localizedDescription }
+            await loadMovie()
         }
-        .onDisappear { player.pause() }
+        .onChange(of: scenePhase) {
+            if scenePhase == .background { recovery?.request() }
+        }
+        .onDisappear {
+            recovery?.request()
+            player.pause()
+        }
         .sheet(item: $export, onDismiss: { export = nil }) { item in
             ShareSheet(url: item.url)
+        }
+    }
+
+    private func loadMovie() async {
+        recoverable = Recording.canRecover(folder)
+        if let data = try? Data(contentsOf: folder.appending(path: "metadata.json")) {
+            metadata = try? JSONDecoder().decode(Metadata.self, from: data)
+        }
+        do {
+            let url = folder.appending(path: "original.mov")
+            frames = try await VideoFrames.inspect(url).1
+            if let origin = metadata?.movieOrigin {
+                sourceFrames = try SavedFrameIndex.read(folder: folder, movie: frames, origin: origin).byMovieFrame
+            }
+            player.replaceCurrentItem(with: AVPlayerItem(url: url))
+            seek(0)
+        } catch {
+            if !recoverable { issue = error.localizedDescription }
+        }
+    }
+
+    private func recover() {
+        let pause = ConversionPause()
+        recovery = pause
+        player.pause()
+        Task {
+            defer { recovery = nil }
+            do {
+                try await Recording.recover(folder, shouldDefer: { pause.isRequested })
+                issue = nil
+                await loadMovie()
+            } catch { issue = error.localizedDescription }
         }
     }
 
@@ -124,7 +171,9 @@ struct ReviewScreen: View {
         next.labels.removeAll { $0.event == event }
         next.labels.append(EventAnnotation(event: event, frameIndex: observed ? index : nil,
                                            moviePTS: observed ? frames[index] : nil,
-                                           observation: observed ? "observed" : "not_observed"))
+                                           observation: observed ? "observed" : "not_observed",
+                                           sourceRecordIndex: observed ? sourceFrames[index]?.recordIndex : nil,
+                                           sourcePTS: observed ? sourceFrames[index]?.source : nil))
         do {
             try SessionStore.writeJSON(next, to: folder.appending(path: "annotations.json"))
             annotations = next

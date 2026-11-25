@@ -54,9 +54,71 @@ final class DeviceCaptureTests: XCTestCase {
         #endif
     }
 
-    private func waitForRecordingInterval() {
+    @MainActor
+    func testRecoverAfterGoingHomeDuringRecording() throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("このテストは実機カメラを使用します。")
+        #else
+        continueAfterFailure = false
+        let (app, id) = beginRecoverableRecording()
+        waitForRecordingInterval(seconds: 10)
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        assertRecovery(in: app, id: id)
+        #endif
+    }
+
+    @MainActor
+    func testRecoverAfterRelaunchDuringSaving() throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("このテストは実機カメラを使用します。")
+        #else
+        continueAfterFailure = false
+        let (app, id) = beginRecoverableRecording()
+        waitForRecordingInterval()
+        app.buttons["capture.stop"].tap()
+        let finishing = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "保存中")).firstMatch
+        XCTAssertTrue(finishing.waitForExistence(timeout: 8))
+        app.terminate()
+        app.launch()
+        assertRecovery(in: app, id: id)
+        #endif
+    }
+
+    @MainActor
+    private func beginRecoverableRecording() -> (XCUIApplication, String) {
+        let app = XCUIApplication()
+        let id = "TEST_" + UUID().uuidString.prefix(8)
+        app.launchArguments = ["-FingerBallTestSubject", id]
+        app.launch()
+        let start = app.buttons["capture.start"]
+        XCTAssertTrue(start.waitForExistence(timeout: 10))
+        if !start.isHittable { app.swipeDown() }
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: start)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
+        start.tap()
+        let recording = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "録画中")).firstMatch
+        XCTAssertTrue(recording.waitForExistence(timeout: 10))
+        return (app, id)
+    }
+
+    @MainActor
+    private func assertRecovery(in app: XCUIApplication, id: String) {
+        let take = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", id)).firstMatch
+        for _ in 0..<3 where !take.isHittable { app.swipeUp() }
+        XCTAssertTrue(take.isHittable)
+        take.tap()
+        let recover = app.buttons["review.recover"]
+        XCTAssertTrue(recover.waitForExistence(timeout: 15))
+        recover.tap()
+        let verified = app.staticTexts["review.videoProperties"]
+        XCTAssertTrue(verified.waitForExistence(timeout: 150))
+        XCTAssertTrue(verified.label.contains("PTS照合済み"))
+    }
+
+    private func waitForRecordingInterval(seconds: TimeInterval = 2) {
         let interval = expectation(description: "Collect two seconds of camera samples")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { interval.fulfill() }
-        XCTAssertEqual(XCTWaiter.wait(for: [interval], timeout: 5), .completed)
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { interval.fulfill() }
+        XCTAssertEqual(XCTWaiter.wait(for: [interval], timeout: seconds + 3), .completed)
     }
 }
