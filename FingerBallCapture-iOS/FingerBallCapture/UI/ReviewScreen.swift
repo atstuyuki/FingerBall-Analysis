@@ -4,6 +4,7 @@ import AVKit
 struct ReviewScreen: View {
     let folder: URL
     @State private var player = AVPlayer()
+    @State private var metadata: Metadata?
     @State private var frames: [FrameTime] = []
     @State private var index = 0
     @State private var ready = false
@@ -17,9 +18,21 @@ struct ReviewScreen: View {
                 VideoPlayer(player: player)
                     .frame(height: 280)
                 if let issue { Text(issue).foregroundStyle(.red) }
+                if let properties = metadata?.actualVideoProperties {
+                    let dimensions = "\(properties.width)×\(properties.height)"
+                    let fps = String(format: "%.2f", properties.nominalFPS)
+                    let verification = properties.ptsMatch ? "PTS照合済み" : "PTS照合未確認"
+                    Text(verbatim: "\(dimensions) · \(fps) fps · \(verification)")
+                        .accessibilityIdentifier("review.videoProperties")
+                }
+                if let metadata {
+                    Text("保存 \(metadata.frameCount)フレーム · 欠落 \(metadata.dropCount)フレーム")
+                        .foregroundStyle(metadata.dropCount == 0 ? Color.secondary : Color.orange)
+                }
                 if !frames.isEmpty {
                     Text("フレーム \(index + 1) / \(frames.count) · \(frames[index].time.seconds.formatted(.number.precision(.fractionLength(6)))) 秒")
                         .monospacedDigit()
+                        .accessibilityIdentifier("review.frame")
                     if frames.count > 1 {
                         Slider(value: Binding(get: { Double(index) }, set: { seek(Int($0)) }),
                                in: 0...Double(frames.count - 1), step: 1)
@@ -43,6 +56,7 @@ struct ReviewScreen: View {
                         HStack {
                             Button("このフレームを指定") { annotate(event, observed: true) }
                                 .disabled(!ready)
+                                .accessibilityIdentifier("review.mark.\(event.rawValue)")
                             Spacer()
                             Button("未観測") { annotate(event, observed: false) }
                         }.buttonStyle(.borderless)
@@ -53,6 +67,9 @@ struct ReviewScreen: View {
         }
         .navigationTitle("撮影レビュー")
         .task {
+            if let data = try? Data(contentsOf: folder.appending(path: "metadata.json")) {
+                metadata = try? JSONDecoder().decode(Metadata.self, from: data)
+            }
             let annotationURL = folder.appending(path: "annotations.json")
             if FileManager.default.fileExists(atPath: annotationURL.path) {
                 do { annotations = try JSONDecoder().decode(Annotations.self, from: Data(contentsOf: annotationURL)) }

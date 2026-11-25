@@ -10,9 +10,11 @@
 		019A545E045A06AF4F65D1D6 /* CaptureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B0DE9E7573352C14AD31D1 /* CaptureModel.swift */; };
 		0430E684E81B0E08E7579BAA /* PeerLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5755D27FBC2810077CF6D3D /* PeerLink.swift */; };
 		06CF99ED276B1BFC9C76C44E /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959EC2B205F5564EEF845B6B /* Camera.swift */; };
+		12EFA91BBAA093803E9200C7 /* EncoderBuffers.swift in Sources */ = {isa = PBXBuildFile; fileRef = E08E586DBACEF5EF6FFA6598 /* EncoderBuffers.swift */; };
 		1AA660A2003F8E816E03811F /* FingerBallCaptureApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B320539547D08E2DA8644D27 /* FingerBallCaptureApp.swift */; };
 		20A6C1E33A30B9A0DED98550 /* CaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A4B321547103E6BA1474E8 /* CaptureTests.swift */; };
 		23F1B83651209BF037FA4F00 /* Recording.swift in Sources */ = {isa = PBXBuildFile; fileRef = B637799651C36E8E83045ED4 /* Recording.swift */; };
+		2D6364F9BA1A261CD142CB7C /* DeviceCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4EA4E85EFD764D7036AAEDC /* DeviceCaptureTests.swift */; };
 		4A75CFB80D2FF3EED670DA43 /* TakeArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36CB42C6978EFA9A7EE64E36 /* TakeArchive.swift */; };
 		56FCFC4C4350EB8B7191F8C5 /* Take.swift in Sources */ = {isa = PBXBuildFile; fileRef = 073A6C91F6F5CA52B0306066 /* Take.swift */; };
 		59BC7F4FFFF3B46DA7D00C16 /* AnalysisModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = D93455D6B5BB15ABDC35A872 /* AnalysisModule.swift */; };
@@ -31,6 +33,13 @@
 			remoteGlobalIDString = 425E3E6193F096524451C966;
 			remoteInfo = FingerBallCapture;
 		};
+		EF7F36FF072B0CA3E2272FEE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B3851C7F77AAEE206588A8D5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 425E3E6193F096524451C966;
+			remoteInfo = FingerBallCapture;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -43,11 +52,14 @@
 		93B0DE9E7573352C14AD31D1 /* CaptureModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureModel.swift; sourceTree = "<group>"; };
 		959EC2B205F5564EEF845B6B /* Camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
 		B320539547D08E2DA8644D27 /* FingerBallCaptureApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingerBallCaptureApp.swift; sourceTree = "<group>"; };
+		B5509C2794434EE51EA0D167 /* FingerBallCaptureDeviceTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FingerBallCaptureDeviceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B637799651C36E8E83045ED4 /* Recording.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recording.swift; sourceTree = "<group>"; };
+		C4EA4E85EFD764D7036AAEDC /* DeviceCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCaptureTests.swift; sourceTree = "<group>"; };
 		D5755D27FBC2810077CF6D3D /* PeerLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerLink.swift; sourceTree = "<group>"; };
 		D93455D6B5BB15ABDC35A872 /* AnalysisModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisModule.swift; sourceTree = "<group>"; };
 		DCB63061133AEF51A7A396DF /* FingerBallCaptureTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FingerBallCaptureTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DE2F3E3610FD3B7BC9DDDE00 /* ReviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewScreen.swift; sourceTree = "<group>"; };
+		E08E586DBACEF5EF6FFA6598 /* EncoderBuffers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderBuffers.swift; sourceTree = "<group>"; };
 		E71E3FB9E131677EFE5184FB /* Annotations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annotations.swift; sourceTree = "<group>"; };
 		EE9503853F2766346B5A2B09 /* FingerBallCapture.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FingerBallCapture.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FE8CCF9B7114992311DBE49F /* CaptureScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureScreen.swift; sourceTree = "<group>"; };
@@ -75,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				473DC2F9129C54E1571D1515 /* FingerBallCapture */,
+				D9B5CE10B58AA9975AC6E418 /* FingerBallCaptureDeviceTests */,
 				98A797E9C2B53833E980977A /* FingerBallCaptureTests */,
 				6CB7841D68A1D7FEE6D6F555 /* Products */,
 			);
@@ -108,6 +121,7 @@
 			isa = PBXGroup;
 			children = (
 				EE9503853F2766346B5A2B09 /* FingerBallCapture.app */,
+				B5509C2794434EE51EA0D167 /* FingerBallCaptureDeviceTests.xctest */,
 				DCB63061133AEF51A7A396DF /* FingerBallCaptureTests.xctest */,
 			);
 			name = Products;
@@ -117,6 +131,7 @@
 			isa = PBXGroup;
 			children = (
 				959EC2B205F5564EEF845B6B /* Camera.swift */,
+				E08E586DBACEF5EF6FFA6598 /* EncoderBuffers.swift */,
 				B637799651C36E8E83045ED4 /* Recording.swift */,
 				05AAC62C966DBE3C56079438 /* VideoFrames.swift */,
 			);
@@ -149,6 +164,14 @@
 			path = UI;
 			sourceTree = "<group>";
 		};
+		D9B5CE10B58AA9975AC6E418 /* FingerBallCaptureDeviceTests */ = {
+			isa = PBXGroup;
+			children = (
+				C4EA4E85EFD764D7036AAEDC /* DeviceCaptureTests.swift */,
+			);
+			path = FingerBallCaptureDeviceTests;
+			sourceTree = "<group>";
+		};
 		E830D16759A64020DE67F02F /* Analysis */ = {
 			isa = PBXGroup;
 			children = (
@@ -160,6 +183,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		09D79FD2718D1402DB293F10 /* FingerBallCaptureDeviceTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 12614C1A89AE75B17C9BFF77 /* Build configuration list for PBXNativeTarget "FingerBallCaptureDeviceTests" */;
+			buildPhases = (
+				FD78E8D8C172C24CC27DA1F7 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F882B5B0A960214F64D31184 /* PBXTargetDependency */,
+			);
+			name = FingerBallCaptureDeviceTests;
+			packageProductDependencies = (
+			);
+			productName = FingerBallCaptureDeviceTests;
+			productReference = B5509C2794434EE51EA0D167 /* FingerBallCaptureDeviceTests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		1D2CBB2A9A73B2ABD10B153A /* FingerBallCaptureTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0A35662A8B913D1BF82F4E1B /* Build configuration list for PBXNativeTarget "FingerBallCaptureTests" */;
@@ -204,6 +245,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					09D79FD2718D1402DB293F10 = {
+						TestTargetID = 425E3E6193F096524451C966;
+					};
 				};
 			};
 			buildConfigurationList = A49714ED2707A1614BD953FA /* Build configuration list for PBXProject "FingerBallCapture" */;
@@ -222,6 +266,7 @@
 			targets = (
 				425E3E6193F096524451C966 /* FingerBallCapture */,
 				1D2CBB2A9A73B2ABD10B153A /* FingerBallCaptureTests */,
+				09D79FD2718D1402DB293F10 /* FingerBallCaptureDeviceTests */,
 			);
 		};
 /* End PBXProject section */
@@ -236,6 +281,7 @@
 				06CF99ED276B1BFC9C76C44E /* Camera.swift in Sources */,
 				019A545E045A06AF4F65D1D6 /* CaptureModel.swift in Sources */,
 				FB47091A9B7D724DD32A5292 /* CaptureScreen.swift in Sources */,
+				12EFA91BBAA093803E9200C7 /* EncoderBuffers.swift in Sources */,
 				1AA660A2003F8E816E03811F /* FingerBallCaptureApp.swift in Sources */,
 				0430E684E81B0E08E7579BAA /* PeerLink.swift in Sources */,
 				23F1B83651209BF037FA4F00 /* Recording.swift in Sources */,
@@ -255,6 +301,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FD78E8D8C172C24CC27DA1F7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2D6364F9BA1A261CD142CB7C /* DeviceCaptureTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -263,9 +317,31 @@
 			target = 425E3E6193F096524451C966 /* FingerBallCapture */;
 			targetProxy = B740E06A313942A81CE8DE19 /* PBXContainerItemProxy */;
 		};
+		F882B5B0A960214F64D31184 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 425E3E6193F096524451C966 /* FingerBallCapture */;
+			targetProxy = EF7F36FF072B0CA3E2272FEE /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		2EDD9BAC37175B896213F63F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.fingerball.capture.devicetests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FingerBallCapture;
+			};
+			name = Debug;
+		};
 		364C805339EF4AAC53387C04 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -360,6 +436,23 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
+		};
+		5BA63C73B87822C7CFF3FE05 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.fingerball.capture.devicetests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FingerBallCapture;
+			};
+			name = Release;
 		};
 		5F76231D618D171241BD6FBB /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -457,6 +550,15 @@
 			buildConfigurations = (
 				364C805339EF4AAC53387C04 /* Debug */,
 				5F76231D618D171241BD6FBB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		12614C1A89AE75B17C9BFF77 /* Build configuration list for PBXNativeTarget "FingerBallCaptureDeviceTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2EDD9BAC37175B896213F63F /* Debug */,
+				5BA63C73B87822C7CFF3FE05 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

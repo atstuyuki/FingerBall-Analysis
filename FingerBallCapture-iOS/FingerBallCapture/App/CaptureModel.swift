@@ -41,6 +41,13 @@ final class CaptureModel: ObservableObject {
     private var lastIssue: String?
 
     init() {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let key = arguments.firstIndex(of: "-FingerBallTestSubject"),
+           arguments.indices.contains(key + 1), arguments[key + 1].hasPrefix("TEST_") {
+            subject = arguments[key + 1]
+        }
+        #endif
         camera.onFailure = { [weak self] message in self?.interrupted(message) }
         peer.onConnection = { [weak self] connected in self?.connectionChanged(connected) }
         peer.onPacket = { [weak self] packet, event in self?.receive(packet, event: event) }

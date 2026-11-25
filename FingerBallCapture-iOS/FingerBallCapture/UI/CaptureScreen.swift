@@ -26,9 +26,11 @@ struct CaptureScreen: View {
                         HStack {
                             Button("録画開始", systemImage: "record.circle", action: model.start)
                                 .disabled(!model.canStart)
+                                .accessibilityIdentifier("capture.start")
                             Spacer()
                             Button("停止", systemImage: "stop.circle", action: model.stop)
                                 .disabled(model.state != .recording)
+                                .accessibilityIdentifier("capture.stop")
                         }.buttonStyle(.borderless)
                     } else if model.state == .recording {
                         Button("この端末の録画を停止", role: .destructive) {

@@ -8,6 +8,8 @@ final class Recording {
     private let writer: AVAssetWriter
     private let input: AVAssetWriterInput
     private let csv: FileHandle
+    private var csvBuffer = Data()
+    private var encoderBuffers: EncoderBuffers?
     private var metadata: Metadata
     private var origin: CMTime?
     private var lastAccepted: CMTime?
@@ -82,24 +84,27 @@ final class Recording {
         } else if !input.isReadyForMoreMediaData {
             reason = "writer_backpressure"
         } else {
-            // Normalize the MOV timeline while retaining the exact source PTS in the CSV.
-            // Let the writer derive the display duration from adjacent PTS, including gaps.
-            var timing = CMSampleTimingInfo(duration: .invalid,
-                                            presentationTimeStamp: CMTimeSubtract(pts, origin ?? pts),
-                                            decodeTimeStamp: .invalid)
-            var timedSample: CMSampleBuffer?
-            let status = CMSampleBufferCreateCopyWithNewTiming(allocator: kCFAllocatorDefault,
-                                                                sampleBuffer: sample,
-                                                                sampleTimingEntryCount: 1,
-                                                                sampleTimingArray: &timing,
-                                                                sampleBufferOut: &timedSample)
-            if status == noErr, let timedSample, input.append(timedSample) {
-                accepted.append(FrameTime(pts))
-                lastAccepted = pts
-                lastDuration = sample.duration
-            } else {
-                reason = "writer_append_failed"
-                failure = writer.error?.localizedDescription ?? "フレームの保存に失敗しました (\(status))"
+            do {
+                guard let image = sample.imageBuffer else {
+                    throw CaptureError.message("カメラサンプルに映像がありません")
+                }
+                if encoderBuffers == nil { encoderBuffers = try EncoderBuffers(source: image) }
+                let timestamp = CMTimeSubtract(pts, origin ?? pts)
+                if let timedSample = try encoderBuffers?.sample(from: image, timestamp: timestamp) {
+                    if input.append(timedSample) {
+                        accepted.append(FrameTime(pts))
+                        lastAccepted = pts
+                        lastDuration = sample.duration
+                    } else {
+                        reason = "writer_append_failed"
+                        failure = writer.error?.localizedDescription ?? "フレームの保存に失敗しました"
+                    }
+                } else {
+                    reason = "encoder_pool_full"
+                }
+            } catch {
+                reason = "encoder_buffer_failed"
+                failure = error.localizedDescription
             }
         }
         row(pts, written: reason.isEmpty, reason: reason)
@@ -118,13 +123,20 @@ final class Recording {
         let line = "\(index),\(pts.value),\(pts.timescale),\(source),\(relative),\(written),\(reason)\n"
         index += 1
         if !written { metadata.dropCount += 1 }
-        do { try csv.write(contentsOf: Data(line.utf8)) }
+        csvBuffer.append(contentsOf: line.utf8)
+        if csvBuffer.count >= 16_384 { flushCSV() }
+    }
+
+    private func flushCSV() {
+        do { try csv.write(contentsOf: csvBuffer) }
         catch { failure = failure ?? error.localizedDescription }
+        csvBuffer.removeAll(keepingCapacity: true)
     }
 
     func finish(partialReason: String?) async -> String? {
         failure = failure ?? partialReason
         log(CaptureEvent(kind: "finishing", detail: failure ?? "stop"))
+        flushCSV()
         do { try csv.close() }
         catch { failure = failure ?? error.localizedDescription }
         if writer.status == .writing, let lastAccepted, let origin {

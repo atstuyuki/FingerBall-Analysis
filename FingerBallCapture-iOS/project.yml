@@ -33,7 +33,24 @@ targets:
       - target: FingerBallCapture
     settings:
       GENERATE_INFOPLIST_FILE: YES
+  FingerBallCaptureDeviceTests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - FingerBallCaptureDeviceTests
+    dependencies:
+      - target: FingerBallCapture
+    settings:
+      GENERATE_INFOPLIST_FILE: YES
+      PRODUCT_BUNDLE_IDENTIFIER: org.fingerball.capture.devicetests
 schemes:
+  FingerBallCaptureDevice:
+    build:
+      targets:
+        FingerBallCapture: all
+    test:
+      targets:
+        - FingerBallCaptureDeviceTests
   FingerBallCapture:
     build:
       targets:
