@@ -1,0 +1,12 @@
+DerivedData/
+build/
+xcuserdata/
+*.xcuserstate
+*.mov
+*.mp4
+FingerBallExports/
+*.csv
+*.json
+*.jsonl
+!FingerBallCaptureTests/Fixtures/*.csv
+!FingerBallCaptureTests/Fixtures/*.json

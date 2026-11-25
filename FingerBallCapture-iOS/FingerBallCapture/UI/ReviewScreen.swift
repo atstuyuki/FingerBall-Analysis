@@ -1,0 +1,211 @@
+import SwiftUI
+import AVKit
+
+struct ReviewScreen: View {
+    let folder: URL
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var recovery: ConversionPause?
+    @State private var sourceFrames: [Int: SavedFrameIndex.Entry] = [:]
+    @State private var recoverable = false
+    @State private var player = AVPlayer()
+    @State private var metadata: Metadata?
+    @State private var frames: [FrameTime] = []
+    @State private var index = 0
+    @State private var ready = false
+    @State private var seekID = UUID()
+    @State private var issue: String?
+    @State private var annotations = Annotations()
+    @State private var export: Export?
+
+    var body: some View {
+        Form {
+            Section {
+                VideoPlayer(player: player)
+                    .frame(height: 280)
+                if let issue { Text(issue).foregroundStyle(.red) }
+                if let error = metadata?.error { Text(error).foregroundStyle(.orange) }
+                if recoverable {
+                    Button(recovery == nil ? "一時保存からMOVを復元" : "MOVを復元中", action: recover)
+                        .disabled(recovery != nil)
+                        .accessibilityIdentifier("review.recover")
+                }
+                if let properties = metadata?.actualVideoProperties {
+                    let dimensions = "\(properties.width)×\(properties.height)"
+                    let fps = String(format: "%.2f", properties.nominalFPS)
+                    let verification = properties.ptsMatch ? "PTS照合済み" : "PTS照合未確認"
+                    Text(verbatim: "\(dimensions) · \(fps) fps · \(verification)")
+                        .accessibilityIdentifier("review.videoProperties")
+                }
+                if let metadata {
+                    if let estimated = metadata.inferredMissingCount, estimated > 0 {
+                        Text("時刻差から推定した欠落 \(estimated)フレーム")
+                    }
+                    Text("保存 \(metadata.frameCount)フレーム · 欠落 \(metadata.dropCount)フレーム")
+                        .foregroundStyle(metadata.dropCount == 0 ? Color.secondary : Color.orange)
+                }
+                if !frames.isEmpty {
+                    Text("フレーム \(index + 1) / \(frames.count) · \(frames[index].time.seconds.formatted(.number.precision(.fractionLength(6)))) 秒")
+                        .monospacedDigit()
+                        .accessibilityIdentifier("review.frame")
+                    if frames.count > 1 {
+                        Slider(value: Binding(get: { Double(index) }, set: { seek(Int($0)) }),
+                               in: 0...Double(frames.count - 1), step: 1)
+                            .accessibilityLabel("フレーム")
+                    }
+                    HStack {
+                        Button("前のフレーム") { seek(index - 1) }.disabled(index == 0)
+                        Spacer()
+                        Button("次のフレーム") { seek(index + 1) }.disabled(index == frames.count - 1)
+                    }.buttonStyle(.borderless)
+                }
+            }
+            Section("手動イベント") {
+                ForEach(PitchEvent.allCases, id: \.self) { event in
+                    VStack(alignment: .leading) {
+                        Text(event.label).font(.headline)
+                        if let label = annotations.labels.first(where: { $0.event == event }) {
+                            Text(label.frameIndex.map { "フレーム \($0 + 1)" } ?? "未観測")
+                                .foregroundStyle(.secondary)
+                        }
+                        HStack {
+                            Button("このフレームを指定") { annotate(event, observed: true) }
+                                .disabled(!ready)
+                                .accessibilityIdentifier("review.mark.\(event.rawValue)")
+                            Spacer()
+                            Button("未観測") { annotate(event, observed: false) }
+                        }.buttonStyle(.borderless)
+                    }
+                }
+            }
+            Button("テイクをZIPで共有", systemImage: "square.and.arrow.up", action: exportTake)
+                .disabled(recovery != nil)
+        }
+        .navigationTitle("撮影レビュー")
+        .task {
+            if let data = try? Data(contentsOf: folder.appending(path: "metadata.json")) {
+                metadata = try? JSONDecoder().decode(Metadata.self, from: data)
+            }
+            let annotationURL = folder.appending(path: "annotations.json")
+            if FileManager.default.fileExists(atPath: annotationURL.path) {
+                do { annotations = try JSONDecoder().decode(Annotations.self, from: Data(contentsOf: annotationURL)) }
+                catch { issue = error.localizedDescription }
+            }
+            await loadMovie()
+        }
+        .onChange(of: scenePhase) {
+            if scenePhase == .background { recovery?.request() }
+        }
+        .onDisappear {
+            recovery?.request()
+            player.pause()
+        }
+        .sheet(item: $export, onDismiss: { export = nil }) { item in
+            ShareSheet(url: item.url)
+        }
+    }
+
+    private func loadMovie() async {
+        recoverable = Recording.canRecover(folder)
+        if let data = try? Data(contentsOf: folder.appending(path: "metadata.json")) {
+            metadata = try? JSONDecoder().decode(Metadata.self, from: data)
+        }
+        do {
+            let url = folder.appending(path: "original.mov")
+            frames = try await VideoFrames.inspect(url).1
+            if let origin = metadata?.movieOrigin {
+                sourceFrames = try SavedFrameIndex.read(folder: folder, movie: frames, origin: origin).byMovieFrame
+            }
+            player.replaceCurrentItem(with: AVPlayerItem(url: url))
+            seek(0)
+        } catch {
+            if !recoverable { issue = error.localizedDescription }
+        }
+    }
+
+    private func recover() {
+        let pause = ConversionPause()
+        recovery = pause
+        player.pause()
+        Task {
+            defer { recovery = nil }
+            do {
+                try await Recording.recover(folder, shouldDefer: { pause.isRequested })
+                issue = nil
+                await loadMovie()
+            } catch { issue = error.localizedDescription }
+        }
+    }
+
+    private func seek(_ proposed: Int) {
+        guard !frames.isEmpty else { return }
+        let destination = min(max(proposed, 0), frames.count - 1)
+        index = destination
+        ready = false
+        let request = UUID()
+        seekID = request
+        player.pause()
+        player.seek(to: frames[destination].time, toleranceBefore: .zero, toleranceAfter: .zero) { finished in
+            DispatchQueue.main.async {
+                if seekID == request { ready = finished }
+            }
+        }
+    }
+
+    private func annotate(_ event: PitchEvent, observed: Bool) {
+        if observed {
+            // Playback controls can move the playhead independently of the frame buttons.
+            let playhead = player.currentTime()
+            let selected = frames[index].time
+            let distance = abs(CMTimeSubtract(playhead, selected).seconds)
+            let previousGap = index > 0 ? CMTimeSubtract(selected, frames[index - 1].time).seconds : .infinity
+            let nextGap = index + 1 < frames.count ? CMTimeSubtract(frames[index + 1].time, selected).seconds : .infinity
+            // AVPlayer can round its reported playhead. Accept only within this frame's neighborhood.
+            let tolerance = min(0.001, min(previousGap, nextGap) / 4)
+            guard ready, player.rate == 0, distance <= tolerance else {
+                seek(index)
+                issue = "指定フレームに移動しました。映像を確認してから再度指定してください。"
+                return
+            }
+        }
+        var next = annotations
+        next.labels.removeAll { $0.event == event }
+        next.labels.append(EventAnnotation(event: event, frameIndex: observed ? index : nil,
+                                           moviePTS: observed ? frames[index] : nil,
+                                           observation: observed ? "observed" : "not_observed",
+                                           sourceRecordIndex: observed ? sourceFrames[index]?.recordIndex : nil,
+                                           sourcePTS: observed ? sourceFrames[index]?.source : nil))
+        do {
+            try SessionStore.writeJSON(next, to: folder.appending(path: "annotations.json"))
+            annotations = next
+            issue = nil
+        } catch { issue = error.localizedDescription }
+    }
+
+    private func exportTake() {
+        Task {
+            do {
+                let archive = try await Task.detached { try TakeArchive.create(folder) }.value
+                export = Export(url: archive)
+            } catch { issue = error.localizedDescription }
+        }
+    }
+}
+
+private struct Export: Identifiable {
+    let url: URL
+    var id: URL { url }
+}
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        controller.completionWithItemsHandler = { _, _, _, _ in
+            try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
+        }
+        return controller
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
