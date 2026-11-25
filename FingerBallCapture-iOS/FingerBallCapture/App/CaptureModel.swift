@@ -26,6 +26,8 @@ final class CaptureModel: ObservableObject {
     @Published var connected = false
     @Published var remoteStatus = ""
     @Published var issue: String?
+    @Published private(set) var cameraIssue: String?
+    @Published private(set) var cameraReady = false
     @Published var saved: [URL] = []
     @Published var remaining = ""
     @Published var activeTake: Take?
@@ -39,6 +41,8 @@ final class CaptureModel: ObservableObject {
     private var remoteStop: Command?
     private var finalReply: Reply?
     private var lastIssue: String?
+    private var inForeground = false
+    private var cameraRequest = 0
 
     init() {
         #if DEBUG
@@ -49,6 +53,16 @@ final class CaptureModel: ObservableObject {
         }
         #endif
         camera.onFailure = { [weak self] message in self?.interrupted(message) }
+        camera.onInterruption = { [weak self] message in
+            guard let self, self.inForeground else { return }
+            self.cameraRequest += 1
+            self.cameraReady = false
+            self.cameraIssue = message
+            if !self.state.permitsNewTake { self.interrupted(message) }
+        }
+        camera.onInterruptionEnded = { [weak self] in
+            Task { await self?.prepare() }
+        }
         peer.onConnection = { [weak self] connected in self?.connectionChanged(connected) }
         peer.onPacket = { [weak self] packet, event in self?.receive(packet, event: event) }
         peer.onError = { [weak self] message in self?.issue = message }
@@ -58,7 +72,7 @@ final class CaptureModel: ObservableObject {
     var canConfigure: Bool { state.permitsNewTake && waiting == nil }
 
     var canStart: Bool {
-        canConfigure && mode != nil && role != .recorder && (role == .solo || connected)
+        canConfigure && cameraReady && mode != nil && role != .recorder && (role == .solo || connected)
             && draft.isValid
     }
 
@@ -66,11 +80,36 @@ final class CaptureModel: ObservableObject {
         Take(sessionID: sessionID, takeID: UUID(), subjectID: subject, throwNumber: throwNumber, throwingHand: throwingHand)
     }
 
-    func prepare() async {
+    func foregroundChanged(_ active: Bool) {
+        guard active != inForeground else { return }
+        inForeground = active
+        if active {
+            refresh()
+            Task { await prepare() }
+        } else {
+            cameraRequest += 1
+            cameraReady = false
+            if state.permitsNewTake { camera.suspendPreview() }
+            else { interrupted("アプリがバックグラウンドに移行しました") }
+        }
+    }
+
+    func prepare(restart: Bool = false) async {
+        guard inForeground else { return }
+        cameraRequest += 1
+        let request = cameraRequest
         do {
-            modes = try await camera.prepare()
+            let available = try await camera.prepare(restart: restart)
+            guard request == cameraRequest else { return }
+            modes = available
             if mode == nil { mode = CameraMode.automaticChoice(modes) }
-        } catch { issue = error.localizedDescription }
+            cameraReady = true
+            cameraIssue = nil
+        } catch {
+            guard request == cameraRequest else { return }
+            cameraReady = false
+            if cameraIssue == nil || restart { cameraIssue = error.localizedDescription }
+        }
     }
 
     func changeRole() {
@@ -267,7 +306,7 @@ final class CaptureModel: ObservableObject {
     private func receive(_ command: Command, event: CaptureEvent) {
         switch command.action {
         case .arm:
-            guard state.permitsNewTake && mode != nil && command.take.isValid else {
+            guard state.permitsNewTake && cameraReady && mode != nil && command.take.isValid else {
                 acknowledge(command, status: "failed", error: "子機の撮影形式または状態を確認してください")
                 return
             }

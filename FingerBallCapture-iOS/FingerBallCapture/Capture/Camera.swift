@@ -13,6 +13,8 @@ final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unc
     private var failureReported = false
     private var observers: [NSObjectProtocol] = []
     var onFailure: ((String) -> Void)?
+    var onInterruption: ((String) -> Void)?
+    var onInterruptionEnded: (() -> Void)?
 
     override init() {
         super.init()
@@ -20,25 +22,55 @@ final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unc
         for name in [AVCaptureSession.wasInterruptedNotification, AVCaptureSession.runtimeErrorNotification] {
             observers.append(center.addObserver(forName: name, object: session, queue: nil) { [weak self] notice in
                 let error = notice.userInfo?[AVCaptureSessionErrorKey] as? NSError
-                let message = error?.localizedDescription ?? "カメラが中断されました"
-                self?.queue.async { [weak self] in self?.reportFailure(message) }
+                let reason = (notice.userInfo?[AVCaptureSessionInterruptionReasonKey] as? NSNumber)
+                    .flatMap { AVCaptureSession.InterruptionReason(rawValue: $0.intValue) }
+                let message: String
+                switch reason {
+                case .videoDeviceNotAvailableWithMultipleForegroundApps:
+                    message = "カメラを使うには、FingerBall Captureを全画面で開いてください。"
+                case .videoDeviceInUseByAnotherClient:
+                    message = "別のアプリがカメラを使用しています。そのアプリを閉じてください。"
+                case .videoDeviceNotAvailableInBackground:
+                    message = "アプリを前面に戻すと、カメラを再開します。"
+                default:
+                    message = error?.localizedDescription ?? "カメラが中断されました。再接続を試せます。"
+                }
+                self?.queue.async { [weak self] in
+                    self?.recording?.log(CaptureEvent(kind: "camera_interruption", detail: message))
+                    DispatchQueue.main.async { [weak self] in self?.onInterruption?(message) }
+                }
             })
         }
+        observers.append(center.addObserver(forName: AVCaptureSession.interruptionEndedNotification,
+                                            object: session, queue: nil) { [weak self] _ in
+            DispatchQueue.main.async { [weak self] in self?.onInterruptionEnded?() }
+        })
     }
 
     deinit { observers.forEach(NotificationCenter.default.removeObserver) }
 
-    func prepare() async throws -> [CameraMode] {
+    func prepare(restart: Bool = false) async throws -> [CameraMode] {
         guard await AVCaptureDevice.requestAccess(for: .video) else {
             throw CaptureError.message("設定でカメラのアクセスを許可してください")
         }
         return try await perform {
             if self.device == nil { try self.installCamera() }
+            if restart && self.recording == nil && self.session.isRunning {
+                self.session.stopRunning()
+            }
             if !self.session.isRunning { self.session.startRunning() }
-            guard self.session.isRunning else { throw CaptureError.message("カメラを開始できません") }
+            guard self.session.isRunning && !self.session.isInterrupted else {
+                throw CaptureError.message("カメラに接続できません。アプリを全画面で開き、カメラを再接続してください。")
+            }
             return self.formats.map { $0.0 }.reduce(into: [CameraMode]()) { result, mode in
                 if !result.contains(mode) { result.append(mode) }
             }
+        }
+    }
+
+    func suspendPreview() {
+        queue.async {
+            if self.recording == nil && self.session.isRunning { self.session.stopRunning() }
         }
     }
 

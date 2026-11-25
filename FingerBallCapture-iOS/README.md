@@ -17,6 +17,10 @@ xcodebuild -project FingerBallCapture.xcodeproj -scheme FingerBallCapture \
   -destination "id=<Simulator UUID>" -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test
 ```
 
+## iPadでカメラが中断された場合
+
+ホーム画面から録画用の **FingerBall Capture** を開きます。自動テスト実行時にXcodeがインストールするテストランナーは、XcodeのTest操作で使用します。iPadで別のアプリと画面を分割している場合は、FingerBall Captureを全画面にします。別アプリがカメラを使っている場合は、そのアプリを閉じてからFingerBall Captureに戻ります。アプリが前面に戻った際にカメラを再開し、カメラエラーが続く場合は画面の「カメラを再接続」を使えます。
+
 ## iPad Air第5世代での受入試験
 
 単体録画の一部はXcodeの `FingerBallCaptureDevice` スキームでも検証できます。カメラを許可し、レンズをテスト用の無地の面に向けた状態で、接続したiPad Airを選んでTestを実行します。テストは固有の `TEST_` IDで約2秒録画し、保存した解像度・名目FPS・PTS照合とフレーム送りを画面で確認します。テイクは端末内に残ります。

@@ -13,7 +13,12 @@ struct CaptureScreen: View {
                         .frame(height: 230)
                         .listRowInsets(EdgeInsets())
                     Text("状態  \(model.state.rawValue)   ·   空き容量  \(model.remaining)")
-                    if let issue = model.issue {
+                    if let cameraIssue = model.cameraIssue {
+                        Text(cameraIssue).foregroundStyle(.red)
+                        Button("カメラを再接続") { Task { await model.prepare(restart: true) } }
+                            .disabled(!model.state.permitsNewTake)
+                    }
+                    if let issue = model.issue, issue != model.cameraIssue {
                         Text(issue).foregroundStyle(.red)
                     }
                     if model.role != .solo {
@@ -56,9 +61,6 @@ struct CaptureScreen: View {
                     }
                     Toggle("露光・ISOを固定（対応端末）", isOn: $model.lockExposure)
                     Toggle("フォーカスを固定（対応端末）", isOn: $model.lockFocus)
-                    if model.modes.isEmpty {
-                        Button("カメラを再確認") { Task { await model.prepare() } }
-                    }
                 }.disabled(!model.canConfigure)
                 Section("研究情報") {
                     if model.role == .recorder {
@@ -98,15 +100,10 @@ struct CaptureScreen: View {
                 }
             }
             .navigationTitle("FingerBall Capture")
-            .task { await model.prepare() }
             .onChange(of: model.role) { model.changeRole() }
-            .onChange(of: scenePhase) {
-                switch scenePhase {
-                case .background where !model.state.permitsNewTake:
-                    model.interrupted("アプリがバックグラウンドに移行しました")
-                case .active: model.refresh()
-                default: break
-                }
+            .onChange(of: scenePhase, initial: true) {
+                if scenePhase == .active { model.foregroundChanged(true) }
+                if scenePhase == .background { model.foregroundChanged(false) }
             }
         }
     }
