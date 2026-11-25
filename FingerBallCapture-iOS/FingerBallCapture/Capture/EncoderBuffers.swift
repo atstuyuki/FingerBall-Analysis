@@ -9,8 +9,10 @@ final class EncoderBuffers {
     private let width: Int
     private let height: Int
     private let pixelFormat: OSType
+    private let maximumBuffers: Int
 
-    init(source: CVPixelBuffer) throws {
+    init(source: CVPixelBuffer, maximumBuffers: Int = 32) throws {
+        self.maximumBuffers = maximumBuffers
         width = CVPixelBufferGetWidth(source)
         height = CVPixelBufferGetHeight(source)
         pixelFormat = CVPixelBufferGetPixelFormatType(source)
@@ -43,7 +45,7 @@ final class EncoderBuffers {
     }
 
     func allocate() throws -> CVPixelBuffer? {
-        let limit = [kCVPixelBufferPoolAllocationThresholdKey as String: 32]
+        let limit = [kCVPixelBufferPoolAllocationThresholdKey as String: maximumBuffers]
         var destination: CVPixelBuffer?
         let allocation = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, pool,
                                                                               limit as CFDictionary, &destination)

@@ -24,7 +24,8 @@ final class Recording {
     private var lastSubmitted: CMTime?
     private var encoded: HardwareEncoder.Result?
     private let processing = DispatchQueue(label: "org.fingerball.capture.encode", qos: .userInitiated)
-    private let slots = DispatchSemaphore(value: 32)
+    private let slots: DispatchSemaphore
+    private let maximumQueuedFrames: Int
     var onFailure: ((String) -> Void)?
 
     private let csv: FileHandle
@@ -52,6 +53,9 @@ final class Recording {
         writer = try AVAssetWriter(outputURL: folder.appending(path: "original.mov"), fileType: .mov)
         encoder = try HardwareEncoder(mode: mode)
         spool = mode.fps >= 120 ? try FrameSpool(folder: folder) : nil
+        // About 270 ms of 240 fps input covers short stalls in the storage path.
+        maximumQueuedFrames = mode.fps >= 120 ? 64 : 32
+        slots = DispatchSemaphore(value: maximumQueuedFrames)
         rotation = CGAffineTransform(rotationAngle: CGFloat(camera.rotationDegrees) * .pi / 180)
         let csvURL = folder.appending(path: "frame_timestamps.csv")
         try Data(Self.header.utf8).write(to: csvURL)
@@ -78,14 +82,14 @@ final class Recording {
             return
         }
         guard slots.wait(timeout: .now()) == .success else {
-            enqueueDrop(pts, reason: "encoder_input_queue_full")
+            enqueueDrop(pts, reason: spool == nil ? "encoder_input_queue_full" : "staging_input_queue_full")
             return
         }
         do {
             guard let image = sample.imageBuffer else {
                 throw CaptureError.message("カメラサンプルに映像がありません")
             }
-            if encoderBuffers == nil { encoderBuffers = try EncoderBuffers(source: image) }
+            if encoderBuffers == nil { encoderBuffers = try EncoderBuffers(source: image, maximumBuffers: maximumQueuedFrames) }
             guard let owned = try encoderBuffers?.copy(image) else {
                 slots.signal()
                 enqueueDrop(pts, reason: "encoder_pool_full")
